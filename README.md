@@ -35,16 +35,73 @@ So far I have figured out the following:
 | 05 | Unknown |
 | 06 | Unknown |
 | 07 - 08 | Sequence Counter going from 0x0000 to 0x0257 (0-599) in increments of 13 |
-| 09 | Number of the slot awaiting setup Slot 1=0x00 to Slot B=0x09 |
-| 10 | Unknown |
-
-
-
-
+| 09 | Slot awaiting setup (see slot table) |
+| 10 | Chemistry selected (See chemistry table) |
+| 11 | Program selected (See program table) |
+| 12 | Selected maximum charge current (applicable for NiHM/Cd only) (see charge current table) |
 
 # Control
 
+# Common
 
+## Slot number
+| Value | Description |
+| -- | -- |
+| 00 | Slot 1 |
+| 01 | Slot 2 |
+| 02 | Slot 3 |
+| 03 | Slot 4 |
+| 04 | Slot 5 |
+| 05 | Slot 6 |
+| 06 | Slot 7 |
+| 07 | Slot 8 |
+| 08 | Slot A |
+| 09 | Slot B |
 
+## Chemistry Values
+| Value | Description |
+| -- | -- |
+| 01 | NiHM/Cd |
+| 02 | NiZn |
 
+## Program
+| Value | Description |
+| -- | -- |
+| 01 | Recharge |
+| 02 | Discharge |
+| 03 | Procharge |
+| 04 | Cycle |
+| 05 | Alive |
+| 06 | Maximize |
 
+## Charge current
+| Value | Description |
+| -- | -- |
+| 00 | Not Applicable (NiZn) |
+| 01 | 500mA |
+| 02 | 1000mA |
+| 03 | 1500mA |
+| 04 | 2000mA |
+| 05 | 2500mA |
+| 06 | 3000mA |
+
+## Discharge current
+The values are interpreted differently depending on the chemistry
+	
+### NiZn
+| Value | Description |
+| -- | -- |
+| 01 | 150mA |
+| 02 | 300mA |
+| 03 | 450mA |
+| 04 | 600mA |
+
+### NiMH/Cd
+| Value | Description |
+| -- | -- |
+| 01 | 125mA |
+| 02 | 250mA |
+| 03 | 375mA |
+| 04 | 500mA |
+| 05 | 625mA |
+| 06 | 750mA |
