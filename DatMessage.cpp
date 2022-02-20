@@ -1,72 +1,153 @@
 #include "DatMessage.hpp"
 #include <iostream>
 #include <string.h>
+#include <arpa/inet.h>
 
-DatMessage::DatMessage() {
+DatMessage::DatMessage(char* buffer, int16_t len) {
+    this->buffer = new char[len];
+    memcpy(this->buffer, buffer, len);
 }
 
-void DatMessage::parse(char *buf)
-{
-    //for(int i=0;i<11; i++) {
-    //    printf("%02x ", (unsigned char)buf[i]);
-    //}
-    //printf("\n");
-
-    if (strncmp(buf,"CM2024 DAT", 10)!=0) {
-        std::cerr << "This is not a DAT message" << std::endl;
-    } else {
-        // skip the "CM2024 DAT" part and use offsets matching the wiki
-        char *start = buf+10;
-
-        this->sc = start[1] | start[0] << 8;
-        this->slot = start[2];
-        this->chemistry = start[3];
-        this->unknown1 = start[4];
-        this->programState = start[5];
-        this->step = start[6];
-        this->minutes = start[8] | start[7] << 8;
-        this->voltage = start[10] | start[9] << 8;
-        this->current = start[12] | start[11] << 8;
-        this->ccap = start[16] | start[15] << 8 | start[14] << 16 | start[13] << 24;
-        this->dcap = start[20] | start[19] << 8 | start[18] << 16 | start[17] << 24;
-        this->unknown2 = start[21];
-        this->unknown3 = start[22];
-        this->maxCharge = start[23];
-        this->unknown4 = start[24];
-        this->unknown5 = start[25];
-        this->pause = start[26];
-        this->capacity = start[28] | start[27] << 8;
-        this->discharge = start[29];
-        this->unknown6 = start[30];
-        this->unknown7 = start[31];
-        this->crc = start[33] | start[32] << 8;
-    }
+DatMessage::~DatMessage() {
+    delete [] this->buffer;
 }
 
 void DatMessage::print()
 {
-    std::cout << "sc:           " << (int)this->sc << std::endl;
-    std::cout << "slot:         " << (int)this->slot << std::endl;
-    std::cout << "chemistry:    " << (int)this->chemistry << std::endl;
-    std::cout << "unknown1:     " << (int)this->unknown1 << std::endl;
-    std::cout << "programState: " << (int)this->programState << std::endl;
-    std::cout << "step:         " << (int)this->step << std::endl;
-    std::cout << "minutes:      " << (int)this->minutes << std::endl;
-    std::cout << "voltage:      " << (int)this->voltage << std::endl;
-    std::cout << "current:      " << (int)this->current << std::endl;
-    std::cout << "ccap:         " << this->ccap << std::endl;
-    std::cout << "dcap:         " << this->dcap << std::endl;
-    std::cout << "unknown2:     " << (int)this->unknown2 << std::endl;
-    std::cout << "unknown3:     " << (int)this->unknown3 << std::endl;
-    std::cout << "maxCharge:    " << (int)this->maxCharge << std::endl;
-    std::cout << "unknown4:     " << (int)this->unknown4 << std::endl;
-    std::cout << "unknown5:     " << (int)this->unknown5 << std::endl;
-    std::cout << "pause:        " << (int)this->pause << std::endl;
-    std::cout << "capacity:     " << (int)this->capacity << std::endl;
-    std::cout << "discharge:    " << (int)this->discharge << std::endl;
-    std::cout << "unknown6:     " << (int)this->unknown6 << std::endl;
-    std::cout << "unknown7:     " << (int)this->unknown7 << std::endl;
-    std::cout << "crc:          " << (int)this->crc << std::endl;
+    std::cout << "sc:           " << this->getSC() << std::endl;
+    std::cout << "slot:         " << (unsigned)this->getSlot() << std::endl;
+    std::cout << "chemistry:    " << (unsigned)this->getChemistry() << std::endl;
+    std::cout << "unknown1:     " << std::hex << (unsigned)this->getUnknown1() << std::dec << std::endl;
+    std::cout << "programState: " << (unsigned)this->getProgramState() << std::endl;
+    std::cout << "program:      " << (unsigned)this->getProgram() << std::endl;
+    std::cout << "step:         " << (unsigned)this->getStep() << std::endl;
+    std::cout << "minutes:      " << this->getMinutes() << std::endl;
+    std::cout << "voltage:      " << this->getVoltage()/1000.0 << std::endl;
+    std::cout << "current:      " << this->getCurrent()/1000.0 << std::endl;
+    std::cout << "ccap:         " << this->getChargeCap()/100.0 << std::endl;
+    std::cout << "dcap:         " << this->getDischargeCap()/100.0 << std::endl;
+    std::cout << "unknown2:     " << std::hex << (unsigned)this->getUnknown2() << std::dec << std::endl;
+    std::cout << "unknown3:     " << std::hex << (unsigned)this->getUnknown3() << std::dec << std::endl;
+    std::cout << "maxCharge:    " << (unsigned)this->getMaxCharge() << std::endl;
+    std::cout << "unknown4:     " << std::hex << (unsigned)this->getUnknown4() << std::dec << std::endl;
+    std::cout << "unknown5:     " << std::hex << (unsigned)this->getUnknown5() << std::dec << std::endl;
+    std::cout << "pause:        " << (unsigned)this->getPause() << std::endl;
+    std::cout << "capacity:     " << this->getCapacity() << std::endl;
+    std::cout << "discharge:    " << (unsigned)this->getDischarge() << std::endl;
+    std::cout << "unknown6:     " << std::hex << (unsigned)this->getUnknown6() << std::dec << std::endl;
+    std::cout << "unknown7:     " << std::hex << (unsigned)this->getUnknown7() << std::dec << std::endl;
+    std::cout << "crc:          " << std::hex << this->getCrc() << std::dec << std::endl;
 }
 
+uint16_t DatMessage::getSC() {
+    uint16_t temp = 0;
+    memcpy(&temp, &this->buffer[0], 2);
+    return htons(temp); // sequence counter is little endian unlike other fields!
+}
+
+uint8_t DatMessage::getSlot() {
+    return this->buffer[2];
+}
+
+uint8_t DatMessage::getChemistry() {
+    return this->buffer[3];
+}
+
+uint8_t DatMessage::getUnknown1() {
+    return this->buffer[4];
+}
+
+uint8_t DatMessage::getProgramState() {
+    return this->buffer[5];
+}
+
+uint8_t DatMessage::getProgram() {
+    return this->buffer[6];
+}
+
+uint8_t DatMessage::getStep() {
+    return this->buffer[7];
+}
+
+uint16_t DatMessage::getMinutes() {
+    uint16_t temp = 0;
+    memcpy(&temp, &this->buffer[8], 2);
+    return temp;
+}
+
+// in units of 0.001
+uint16_t DatMessage::getVoltage() {
+    uint16_t temp = 0;
+    memcpy(&temp, &this->buffer[10], 2);
+    return temp;
+}
+
+// in units of 0.001
+uint16_t DatMessage::getCurrent() {
+    uint16_t temp = 0;
+    memcpy(&temp, &this->buffer[12], 2);
+    return temp;
+}
+
+// in units of 0.01
+uint32_t DatMessage::getChargeCap() {
+    uint32_t temp = 0;
+    memcpy(&temp, &this->buffer[14], 4);
+    return temp;
+}
+
+// in units of 0.01
+uint32_t DatMessage::getDischargeCap() {
+    uint32_t temp = 0;
+    memcpy(&temp, &this->buffer[18], 4);
+    return temp;
+}
+
+uint8_t DatMessage::getUnknown2() {
+    return this->buffer[22];
+}
+
+uint8_t DatMessage::getUnknown3() {
+    return this->buffer[23];
+}
+
+uint8_t DatMessage::getMaxCharge() {
+    return this->buffer[24];
+}
+
+uint8_t DatMessage::getUnknown4() {
+    return this->buffer[25];
+}
+
+uint8_t DatMessage::getUnknown5() {
+    return this->buffer[26];
+}
+
+uint8_t DatMessage::getPause() {
+    return this->buffer[27];
+}
+
+uint16_t DatMessage::getCapacity() {
+    uint16_t temp = 0;
+    memcpy(&temp, &this->buffer[28], 2);
+    return temp;
+}
+
+uint8_t DatMessage::getDischarge() {
+    return this->buffer[30];
+}
+
+uint8_t DatMessage::getUnknown6() {
+    return this->buffer[31];
+}
+
+uint8_t DatMessage::getUnknown7() {
+    return this->buffer[32];
+}
+
+uint16_t DatMessage::getCrc() {
+    uint16_t temp = 0;
+    memcpy(&temp, &this->buffer[33], 2);
+    return temp;
+}
 

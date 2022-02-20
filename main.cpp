@@ -93,10 +93,11 @@ int main(int argc, char **argv) {
 
             if(strncmp(buf,"CM2024 SUP", 10)==0) {
                 std::cout << "SUP" << std::endl;
+
             } else if (strncmp(buf,"CM2024 DAT", 10)==0) {
                 //std::cout << "DAT" << std::endl;
-                DatMessage* dat = new DatMessage();
-                dat->parse(buf);
+                DatMessage* dat = new DatMessage(buf+10, len-10);
+                //dat->parse(buf);
                 dat->print();
                 delete dat;
             } else {

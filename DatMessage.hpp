@@ -5,11 +5,40 @@
 
 class DatMessage {
 public:
-    DatMessage();
+    DatMessage(char* buffer, int16_t len);
+    ~DatMessage();
+
+    uint16_t getSC();
+    uint8_t getSlot();
+    uint8_t getChemistry();
+    uint8_t getUnknown1();
+    uint8_t getProgramState();
+    uint8_t getProgram();
+    uint8_t getStep();
+    uint16_t getMinutes();
+    uint16_t getVoltage(); // in units of 0.001
+    uint16_t getCurrent(); // in units of 0.001
+    uint32_t getChargeCap(); // in units of 0.01
+    uint32_t getDischargeCap(); // in units of 0.01
+    uint8_t getUnknown2();
+    uint8_t getUnknown3();
+    uint8_t getMaxCharge();
+    uint8_t getUnknown4();
+    uint8_t getUnknown5();
+    uint8_t getPause();
+    uint16_t getCapacity();
+    uint8_t getDischarge();
+    uint8_t getUnknown6();
+    uint8_t getUnknown7();
+    uint16_t getCrc();
+
+    /*
     void parse(char *message);
+    */
     void print();
 
 private:
+    /*
     uint16_t sc;
     uint8_t slot;
     uint8_t chemistry;
@@ -32,6 +61,9 @@ private:
     uint8_t unknown6;
     uint8_t unknown7;
     uint16_t crc;
+    */
+
+    char* buffer;
 };
 
 #endif // DATMESSAGE_HPP_INCLUDED
