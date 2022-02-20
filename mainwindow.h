@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "datmessage.h"
 #include "usbworker.h"
 
 class MainWindow : public QMainWindow
@@ -11,6 +12,9 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
+
+public slots:
+    void updateState(const DatMessage &msg);
 
 private:
     UsbWorker *usbWorker;

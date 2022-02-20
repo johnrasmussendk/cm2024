@@ -1,19 +1,28 @@
 #include "datmessage.h"
+
+#include <arpa/inet.h>
 #include <iostream>
 #include <string.h>
-#include <arpa/inet.h>
+
+DatMessage::DatMessage() {
+}
 
 DatMessage::DatMessage(char* buffer, int16_t len) {
+    bufferLen = len;
     this->buffer = new char[len];
     memcpy(this->buffer, buffer, len);
+}
+
+DatMessage::DatMessage(const DatMessage &other) {
+    this->buffer = new char[other.getBufferLen()];
+    memcpy(this->buffer, buffer, other.getBufferLen());
 }
 
 DatMessage::~DatMessage() {
     delete [] this->buffer;
 }
 
-
-void DatMessage::print()
+void DatMessage::print() const
 {
     std::cout << "sc:           " << this->getSC() << std::endl;
     std::cout << "slot:         " << (unsigned)this->getSlot() << std::endl;
@@ -40,115 +49,114 @@ void DatMessage::print()
     std::cout << "crc:          " << std::hex << this->getCrc() << std::dec << std::endl;
 }
 
-uint16_t DatMessage::getSC() {
+uint16_t DatMessage::getSC() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[0], 2);
     return htons(temp); // sequence counter is little endian unlike other fields!
 }
 
-uint8_t DatMessage::getSlot() {
+uint8_t DatMessage::getSlot() const {
     return this->buffer[2];
 }
 
-uint8_t DatMessage::getChemistry() {
+uint8_t DatMessage::getChemistry() const {
     return this->buffer[3];
 }
 
-uint8_t DatMessage::getUnknown1() {
+uint8_t DatMessage::getUnknown1() const {
     return this->buffer[4];
 }
 
-uint8_t DatMessage::getProgramState() {
+uint8_t DatMessage::getProgramState() const {
     return this->buffer[5];
 }
 
-uint8_t DatMessage::getProgram() {
+uint8_t DatMessage::getProgram() const {
     return this->buffer[6];
 }
 
-uint8_t DatMessage::getStep() {
+uint8_t DatMessage::getStep() const {
     return this->buffer[7];
 }
 
-uint16_t DatMessage::getMinutes() {
+uint16_t DatMessage::getMinutes() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[8], 2);
     return temp;
 }
 
 // in units of 0.001
-uint16_t DatMessage::getVoltage() {
+uint16_t DatMessage::getVoltage() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[10], 2);
     return temp;
 }
 
 // in units of 0.001
-uint16_t DatMessage::getCurrent() {
+uint16_t DatMessage::getCurrent() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[12], 2);
     return temp;
 }
 
 // in units of 0.01
-uint32_t DatMessage::getChargeCap() {
+uint32_t DatMessage::getChargeCap() const {
     uint32_t temp = 0;
     memcpy(&temp, &this->buffer[14], 4);
     return temp;
 }
 
 // in units of 0.01
-uint32_t DatMessage::getDischargeCap() {
+uint32_t DatMessage::getDischargeCap() const {
     uint32_t temp = 0;
     memcpy(&temp, &this->buffer[18], 4);
     return temp;
 }
 
-uint8_t DatMessage::getUnknown2() {
+uint8_t DatMessage::getUnknown2() const {
     return this->buffer[22];
 }
 
-uint8_t DatMessage::getUnknown3() {
+uint8_t DatMessage::getUnknown3() const {
     return this->buffer[23];
 }
 
-uint8_t DatMessage::getMaxCharge() {
+uint8_t DatMessage::getMaxCharge() const {
     return this->buffer[24];
 }
 
-uint8_t DatMessage::getUnknown4() {
+uint8_t DatMessage::getUnknown4() const {
     return this->buffer[25];
 }
 
-uint8_t DatMessage::getUnknown5() {
+uint8_t DatMessage::getUnknown5() const {
     return this->buffer[26];
 }
 
-uint8_t DatMessage::getPause() {
+uint8_t DatMessage::getPause() const {
     return this->buffer[27];
 }
 
-uint16_t DatMessage::getCapacity() {
+uint16_t DatMessage::getCapacity() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[28], 2);
     return temp;
 }
 
-uint8_t DatMessage::getDischarge() {
+uint8_t DatMessage::getDischarge() const {
     return this->buffer[30];
 }
 
-uint8_t DatMessage::getUnknown6() {
+uint8_t DatMessage::getUnknown6() const {
     return this->buffer[31];
 }
 
-uint8_t DatMessage::getUnknown7() {
+uint8_t DatMessage::getUnknown7() const {
     return this->buffer[32];
 }
 
-uint16_t DatMessage::getCrc() {
+uint16_t DatMessage::getCrc() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[33], 2);
     return temp;
 }
-

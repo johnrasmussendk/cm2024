@@ -2,6 +2,7 @@
 #define USBWORKER_H
 
 #include <QThread>
+#include "datmessage.h"
 
 class UsbWorker : public QThread
 {
@@ -10,6 +11,9 @@ class UsbWorker : public QThread
 public:
     UsbWorker(QObject *parent = nullptr);
     ~UsbWorker();
+
+signals:
+    void sendState(const DatMessage &state);
 
 protected:
     void run();

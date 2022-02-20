@@ -1,9 +1,12 @@
 #include "usbworker.h"
-#include <iostream>
+
+#include "datmessage.h"
+
 #include <fcntl.h>
+#include <iostream>
 #include <termios.h>
 #include <unistd.h>
-#include "datmessage.h"
+
 
 UsbWorker::UsbWorker(QObject *parent)
     : QThread(parent)
@@ -23,27 +26,25 @@ void UsbWorker::run()
 
     if(this->fd != -1) {
         while(true) {
-            std::cout << "usb thread working..." << std::endl;
 
             int len = readMessage();
-            printf("[%d]:", len);
-            for(int i=0;i<len; i++) {
-                printf("%02x ", (unsigned char)buf[i]);
-            }
-            printf("\n");
+            //printf("[%d]:", len);
+            //for(int i=0;i<len; i++) {
+            //    printf("%02x ", (unsigned char)buf[i]);
+            //}
+            //printf("\n");
 
             if(strncmp(this->buf,"CM2024 SUP", 10)==0) {
                 std::cout << "SUP" << std::endl;
 
             } else if (strncmp(this->buf,"CM2024 DAT", 10)==0) {
                 //std::cout << "DAT" << std::endl;
-                DatMessage* dat = new DatMessage(buf+10, len-10);
-                dat->print();
-                delete dat;
+                DatMessage dat = DatMessage(buf+10, len-10);
+                //dat->print();
+                emit sendState(dat);
             } else {
                 std::cout << "tf is this" << std::endl;
             }
-            //QThread::sleep(1);
         }
     }
 }
