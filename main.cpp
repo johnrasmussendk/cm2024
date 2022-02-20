@@ -6,6 +6,7 @@
 #include <termios.h>
 //#include <stdio.h>
 #include <string.h>
+#include "DatMessage.hpp"
 
 /*
  * Initialise serial port for read/write
@@ -71,7 +72,7 @@ int read_message(int fd, char *buf) {
         n = read(fd, &ch, 1);
         buf[len] = ch;
         len += n;
-    } while(n>0 && prevch!='\r' && ch!='\n');
+    } while((prevch!='\r' || ch!='\n') && len<=47);
     return len;
 }
 
@@ -84,10 +85,23 @@ int main(int argc, char **argv) {
             char buf[64];
             memset(buf, '\0', sizeof buf);
             int len = read_message(fd, buf);
+            printf("[%d]:", len);
             for(int i=0;i<len; i++) {
                 printf("%02x ", (unsigned char)buf[i]);
             }
             printf("\n");
+
+            if(strncmp(buf,"CM2024 SUP", 10)==0) {
+                std::cout << "SUP" << std::endl;
+            } else if (strncmp(buf,"CM2024 DAT", 10)==0) {
+                //std::cout << "DAT" << std::endl;
+                DatMessage* dat = new DatMessage();
+                dat->parse(buf);
+                dat->print();
+                delete dat;
+            } else {
+                std::cout << "tf is this" << std::endl;
+            }
         }
     }
 
