@@ -1,4 +1,4 @@
 # cm2024
-Application for monitoring and control of Voltcraft CM 2024 Charge Manager from conrad. This device has a serial interface and Windows software but nothing for Linux so it is my intention to reverse engineer the interace and create some sort of open source command line tool to interact with it.
+This will be a Qt application for monitoring and control of Voltcraft CM 2024 Charge Manager. Currently it doesn't do much as I am still trying to figure out the exchage of serial messages.
 
 See wiki for details of the interface. 

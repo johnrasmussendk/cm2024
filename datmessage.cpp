@@ -1,4 +1,4 @@
-#include "DatMessage.hpp"
+#include "datmessage.h"
 #include <iostream>
 #include <string.h>
 #include <arpa/inet.h>
@@ -11,6 +11,7 @@ DatMessage::DatMessage(char* buffer, int16_t len) {
 DatMessage::~DatMessage() {
     delete [] this->buffer;
 }
+
 
 void DatMessage::print()
 {
