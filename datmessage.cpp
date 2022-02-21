@@ -6,6 +6,9 @@
 #include <string.h>
 
 DatMessage::DatMessage() {
+    bufferLen = 37;
+    this->buffer = new char[bufferLen];
+    memset(this->buffer, '\0', bufferLen);
 }
 
 DatMessage::DatMessage(char* buffer, int16_t len) {
@@ -27,7 +30,7 @@ DatMessage::~DatMessage() {
 void DatMessage::print() const
 {
     std::cout << "counter:      " << this->getCounter() << std::endl;
-    std::cout << "slot:         " << this->getSlotStr() << std::endl;
+    std::cout << "slot:         " << this->getSlotIdStr() << std::endl;
     std::cout << "chemistry:    " << this->getChemistryStr() << std::endl;
     std::cout << "unknown1:     " << std::hex << (unsigned)this->getUnknown1() << std::dec << std::endl;
     std::cout << "programState: " << this->getProgramStateStr() << std::endl;
@@ -53,7 +56,7 @@ void DatMessage::print() const
 
 void DatMessage::printSummary() const
 {
-    std::cout << (unsigned)this->getSlot() << ": " << this->getProgramStateStr() << ": " << this->getStepStr() << std::endl;
+    std::cout << (unsigned)this->getSlotId() << ": " << this->getProgramStateStr() << ": " << this->getStepStr() << std::endl;
 }
 
 void DatMessage::printBuf() const {
@@ -70,12 +73,12 @@ uint16_t DatMessage::getCounter() const {
     return htons(temp); // sequence counter is little endian unlike other fields!
 }
 
-uint8_t DatMessage::getSlot() const {
+uint8_t DatMessage::getSlotId() const {
     return this->buffer[2];
 }
 
-std::string DatMessage::getSlotStr() const {
-    switch(getSlot()) {
+std::string DatMessage::getSlotIdStr() const {
+    switch(getSlotId()) {
         case 0:
             return "Slot 1";
         case 1:
@@ -97,11 +100,10 @@ std::string DatMessage::getSlotStr() const {
         case 9:
             return "Slot B";
         default:
-            std::cout << "unknown slot number: " << (unsigned)getSlot() << std::endl;
+            std::cout << "unknown slot number: " << (unsigned)getSlotId() << std::endl;
             return "Unknown";
     }
 }
-
 
 uint8_t DatMessage::getChemistry() const {
     return this->buffer[3];

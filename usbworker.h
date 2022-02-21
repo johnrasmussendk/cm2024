@@ -1,8 +1,11 @@
 #ifndef USBWORKER_H
 #define USBWORKER_H
 
-#include <QThread>
 #include "datmessage.h"
+
+#include <QMutex>
+#include <QThread>
+
 
 class UsbWorker : public QThread
 {
@@ -12,8 +15,12 @@ public:
     UsbWorker(QObject *parent = nullptr);
     ~UsbWorker();
 
+public slots:
+    void toggleConnect();
+
 signals:
     void sendState(const DatMessage &state);
+    void sendConnected(bool connected);
 
 protected:
     void run();
@@ -21,8 +28,10 @@ protected:
     int readMessage();
 
 private:
-    int fd;
+    int fd = -1;
     char buf[64];
+    QMutex mutex;
+    bool connect = false;
 };
 
 #endif // USBWORKER_H

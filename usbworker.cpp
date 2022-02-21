@@ -17,37 +17,49 @@ UsbWorker::~UsbWorker()
 {
     if(this->fd != -1) {
         close(this->fd);
+        this->fd = -1;
     }
+
+    wait();
 }
 
 void UsbWorker::run()
 {
-    initPort();
+    while(true) {
 
-    if(this->fd != -1) {
-        while(true) {
-
-            int len = readMessage();
-
-            if(strncmp(this->buf,"CM2024 SUP", 10)==0) {
-                std::cout << "SUP todo" << std::endl;
-
-            } else if (strncmp(this->buf,"CM2024 DAT", 10)==0) {
-                //std::cout << "DAT" << std::endl;
-                DatMessage dat = DatMessage(buf+10, len-10);
-                //dat.printBuf();
-                emit sendState(dat);
-
-            } else {
-                std::cout << "tf is this" << std::endl;
+        if(connect == true) {
+            if(fd == -1) {
+                initPort();
             }
+            if(fd != -1) {
+                emit sendConnected(true);
+
+                int len = readMessage();
+
+                if(strncmp(this->buf,"CM2024 SUP", 10)==0) {
+                    std::cout << "SUP todo" << std::endl;
+
+                } else if (strncmp(this->buf,"CM2024 DAT", 10)==0) {
+                    //std::cout << "DAT" << std::endl;
+                    DatMessage dat = DatMessage(buf+10, len-10);
+                    //dat.printBuf();
+                    emit sendState(dat);
+                } else {
+                    std::cout << "tf is this" << std::endl;
+                }
+            }
+        } else {
+            if(fd != -1) {
+                close(fd);
+                fd = -1;
+                emit sendConnected(false);
+            }
+
+            QThread::sleep(1);
         }
     }
 }
 
-/*
- * Initialise serial port for read/write
- */
 void UsbWorker::initPort() {
     this->fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY);
     if(this->fd == -1) {
@@ -88,6 +100,8 @@ void UsbWorker::initPort() {
             std::cout << "Error " << errno << " from tcsetattr" << std::endl;
             return;
         }
+
+        emit sendConnected(true);
     }
 }
 
@@ -107,4 +121,10 @@ int UsbWorker::readMessage() {
         len += n;
     } while((prevch!='\r' || ch!='\n') && len<=47);
     return len;
+}
+
+void UsbWorker::toggleConnect() {
+    mutex.lock();
+    connect = !connect;
+    mutex.unlock();
 }

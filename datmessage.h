@@ -13,8 +13,8 @@ public:
     ~DatMessage();
 
     uint16_t getCounter() const;
-    uint8_t getSlot() const;
-    std::string getSlotStr() const;
+    uint8_t getSlotId() const;
+    std::string getSlotIdStr() const;
     uint8_t getChemistry() const;
     std::string getChemistryStr() const;
     uint8_t getUnknown1() const;

@@ -18,7 +18,11 @@ public:
     ~MainWindow() override;
 
 public slots:
+    void updateConnected(bool connected);
     void updateState(const DatMessage &msg);
+
+protected:
+    void resetState();
 
 private:
     UsbWorker *usbWorker;
