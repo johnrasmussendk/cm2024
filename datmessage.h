@@ -26,10 +26,15 @@ public:
     uint8_t getStep() const;
     std::string getStepStr() const;
     uint16_t getMinutes() const;
+    std::string getTimerStr() const;
     uint16_t getVoltage() const; // in units of 0.001
+    std::string getVoltageStr() const;
     uint16_t getCurrent() const; // in units of 0.001
+    std::string getCurrentStr() const;
     uint32_t getChargeCap() const; // in units of 0.01
+    std::string getChargeCapStr() const;
     uint32_t getDischargeCap() const; // in units of 0.01
+    std::string getDischargeCapStr() const;
     uint8_t getUnknown2() const;
     uint8_t getUnknown3() const;
     uint8_t getMaxCharge() const;
@@ -48,6 +53,10 @@ public:
 
     char* getBuffer() const { return buffer; };
     int getBufferLen() const { return bufferLen; };
+
+protected:
+    template <typename T>
+    std::string to_string_with_precision(const T a_value, const int n = 6) const;
 
 private:
     char* buffer;

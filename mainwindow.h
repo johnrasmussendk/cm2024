@@ -5,6 +5,10 @@
 #include "datmessage.h"
 #include "usbworker.h"
 
+namespace Ui {
+class MainWindow;
+}
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -18,7 +22,7 @@ public slots:
 
 private:
     UsbWorker *usbWorker;
-
+    QScopedPointer<Ui::MainWindow> ui;
 };
 
 #endif // MAINWINDOW_H

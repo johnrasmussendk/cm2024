@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <iostream>
+#include <sstream>
 #include <string.h>
 
 DatMessage::DatMessage() {
@@ -96,7 +97,7 @@ std::string DatMessage::getSlotStr() const {
         case 9:
             return "Slot B";
         default:
-            std::cout << "unknown chemistry state: " << (unsigned)getSlot() << std::endl;
+            std::cout << "unknown slot number: " << (unsigned)getSlot() << std::endl;
             return "Unknown";
     }
 }
@@ -108,6 +109,9 @@ uint8_t DatMessage::getChemistry() const {
 
 std::string DatMessage::getChemistryStr() const {
     switch(getChemistry()) {
+        case 0:
+            // the slot is empty
+            return "-";
         case 1:
             return "NiHM/Cd";
         case 2:
@@ -141,7 +145,8 @@ std::string DatMessage::getProgramStr() const {
 std::string DatMessage::programAsString(uint8_t program) const {
     switch(program) {
         case 0:
-            return "None/Empty";
+            // the slot is empty
+            return "-";
         case 1:
             return "Recharge";
         case 2:
@@ -192,7 +197,7 @@ std::string DatMessage::getStepStr() const {
         case 6:
             return "Error";
         default:
-            std::cout << "unknown chemistry state: " << (unsigned)getChemistry() << std::endl;
+            std::cout << "unknown step state: " << (unsigned)getStep() << std::endl;
             return "Unknown";
     }
 }
@@ -203,11 +208,21 @@ uint16_t DatMessage::getMinutes() const {
     return temp;
 }
 
+std::string DatMessage::getTimerStr() const {
+    uint16_t hours = getMinutes()/60;
+    uint16_t minutes = getMinutes()%60;
+    return std::to_string(hours) + std::string(":") + std::to_string(minutes);
+}
+
 // in units of 0.001
 uint16_t DatMessage::getVoltage() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[10], 2);
     return temp;
+}
+
+std::string DatMessage::getVoltageStr() const {
+    return to_string_with_precision(getVoltage() * 0.001, 3);
 }
 
 // in units of 0.001
@@ -217,6 +232,10 @@ uint16_t DatMessage::getCurrent() const {
     return temp;
 }
 
+std::string DatMessage::getCurrentStr() const {
+    return to_string_with_precision(getCurrent() * 0.001, 3);
+}
+
 // in units of 0.01
 uint32_t DatMessage::getChargeCap() const {
     uint32_t temp = 0;
@@ -224,11 +243,19 @@ uint32_t DatMessage::getChargeCap() const {
     return temp;
 }
 
+std::string DatMessage::getChargeCapStr() const {
+    return to_string_with_precision(getChargeCap() * 0.01, 2);
+}
+
 // in units of 0.01
 uint32_t DatMessage::getDischargeCap() const {
     uint32_t temp = 0;
     memcpy(&temp, &this->buffer[18], 4);
     return temp;
+}
+
+std::string DatMessage::getDischargeCapStr() const {
+    return to_string_with_precision(getDischargeCap() * 0.01, 2);
 }
 
 uint8_t DatMessage::getUnknown2() const {
@@ -277,4 +304,13 @@ uint16_t DatMessage::getCrc() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[33], 2);
     return temp;
+}
+
+template <typename T>
+std::string DatMessage::to_string_with_precision(const T a_value, const int n) const
+{
+    std::ostringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return out.str();
 }
