@@ -1,16 +1,23 @@
 #ifndef DATMESSAGE_HPP_INCLUDED
 #define DATMESSAGE_HPP_INCLUDED
 
+#include "message.h"
+
 #include <QMetaType>
 #include <stdint.h>
 
 
-class DatMessage {
+class DatMessage : public Message {
 public:
+
+    using Message::Message;
+    /*
     DatMessage();
     DatMessage(char* buffer, int16_t len);
     DatMessage(const DatMessage &other);
     ~DatMessage();
+    */
+
 
     uint16_t getCounter() const;
     uint8_t getSlotId() const;
@@ -49,18 +56,6 @@ public:
 
     void print() const;
     void printSummary() const;
-    void printBuf() const;
-
-    char* getBuffer() const { return buffer; };
-    int getBufferLen() const { return bufferLen; };
-
-protected:
-    template <typename T>
-    std::string to_string_with_precision(const T a_value, const int n = 6) const;
-
-private:
-    char* buffer;
-    int bufferLen;
 };
 
 Q_DECLARE_METATYPE(DatMessage);

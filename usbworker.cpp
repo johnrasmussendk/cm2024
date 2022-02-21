@@ -1,6 +1,7 @@
 #include "usbworker.h"
 
 #include "datmessage.h"
+#include "supmessage.h"
 
 #include <fcntl.h>
 #include <iostream>
@@ -37,13 +38,12 @@ void UsbWorker::run()
                 int len = readMessage();
 
                 if(strncmp(this->buf,"CM2024 SUP", 10)==0) {
-                    std::cout << "SUP todo" << std::endl;
+                    SupMessage sup = SupMessage(buf+10, len-10);
+                    emit sendSup(sup);
 
                 } else if (strncmp(this->buf,"CM2024 DAT", 10)==0) {
-                    //std::cout << "DAT" << std::endl;
                     DatMessage dat = DatMessage(buf+10, len-10);
-                    //dat.printBuf();
-                    emit sendState(dat);
+                    emit sendDat(dat);
                 } else {
                     std::cout << "tf is this" << std::endl;
                 }

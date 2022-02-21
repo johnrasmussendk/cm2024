@@ -3,29 +3,8 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <sstream>
-#include <string.h>
+#include <string>
 
-DatMessage::DatMessage() {
-    bufferLen = 37;
-    this->buffer = new char[bufferLen];
-    memset(this->buffer, '\0', bufferLen);
-}
-
-DatMessage::DatMessage(char* buffer, int16_t len) {
-    bufferLen = len;
-    this->buffer = new char[len];
-    memcpy(this->buffer, buffer, len);
-}
-
-DatMessage::DatMessage(const DatMessage &other) {
-    this->buffer = new char[other.getBufferLen()];
-    this->bufferLen = other.getBufferLen();
-    memcpy(this->buffer, other.getBuffer(), other.getBufferLen());
-}
-
-DatMessage::~DatMessage() {
-    delete [] this->buffer;
-}
 
 void DatMessage::print() const
 {
@@ -57,14 +36,6 @@ void DatMessage::print() const
 void DatMessage::printSummary() const
 {
     std::cout << (unsigned)this->getSlotId() << ": " << this->getProgramStateStr() << ": " << this->getStepStr() << std::endl;
-}
-
-void DatMessage::printBuf() const {
-    printf("[%d]:", bufferLen);
-    for(int i=0;i<bufferLen; i++) {
-        printf("%02x ", (unsigned char)buffer[i]);
-    }
-    printf("\n");
 }
 
 uint16_t DatMessage::getCounter() const {
@@ -224,7 +195,10 @@ uint16_t DatMessage::getVoltage() const {
 }
 
 std::string DatMessage::getVoltageStr() const {
-    return to_string_with_precision(getVoltage() * 0.001, 3);
+    std::ostringstream out;
+    out.precision(3);
+    out << std::fixed << getVoltage() * 0.001;
+    return out.str();
 }
 
 // in units of 0.001
@@ -235,7 +209,10 @@ uint16_t DatMessage::getCurrent() const {
 }
 
 std::string DatMessage::getCurrentStr() const {
-    return to_string_with_precision(getCurrent() * 0.001, 3);
+    std::ostringstream out;
+    out.precision(3);
+    out << std::fixed << getCurrent() * 0.001;
+    return out.str();
 }
 
 // in units of 0.01
@@ -246,7 +223,10 @@ uint32_t DatMessage::getChargeCap() const {
 }
 
 std::string DatMessage::getChargeCapStr() const {
-    return to_string_with_precision(getChargeCap() * 0.01, 2);
+    std::ostringstream out;
+    out.precision(2);
+    out << std::fixed << getChargeCap() * 0.01;
+    return out.str();
 }
 
 // in units of 0.01
@@ -257,7 +237,10 @@ uint32_t DatMessage::getDischargeCap() const {
 }
 
 std::string DatMessage::getDischargeCapStr() const {
-    return to_string_with_precision(getDischargeCap() * 0.01, 2);
+    std::ostringstream out;
+    out.precision(2);
+    out << std::fixed << getDischargeCap() * 0.01;
+    return out.str();
 }
 
 uint8_t DatMessage::getUnknown2() const {
@@ -306,13 +289,4 @@ uint16_t DatMessage::getCrc() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[33], 2);
     return temp;
-}
-
-template <typename T>
-std::string DatMessage::to_string_with_precision(const T a_value, const int n) const
-{
-    std::ostringstream out;
-    out.precision(n);
-    out << std::fixed << a_value;
-    return out.str();
 }

@@ -2,6 +2,7 @@
 #define USBWORKER_H
 
 #include "datmessage.h"
+#include "supmessage.h"
 
 #include <QMutex>
 #include <QThread>
@@ -19,7 +20,8 @@ public slots:
     void toggleConnect();
 
 signals:
-    void sendState(const DatMessage &state);
+    void sendDat(const DatMessage &state);
+    void sendSup(const SupMessage &state);
     void sendConnected(bool connected);
 
 protected:

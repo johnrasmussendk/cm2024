@@ -19,7 +19,8 @@ public:
 
 public slots:
     void updateConnected(bool connected);
-    void updateState(const DatMessage &msg);
+    void updateDatState(const DatMessage &msg);
+    void updateSupState(const SupMessage &msg);
 
 protected:
     void resetState();

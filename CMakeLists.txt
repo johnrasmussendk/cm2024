@@ -18,6 +18,8 @@ set(project_sources
    main.cpp
    datmessage.cpp
    mainwindow.cpp
+   message.cpp
+   supmessage.cpp
    usbworker.cpp
 )
 

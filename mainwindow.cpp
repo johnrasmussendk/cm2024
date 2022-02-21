@@ -6,7 +6,8 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent), ui(new Ui::MainWindow) {
 
     this->usbWorker = new UsbWorker(this);
-    connect(this->usbWorker, &UsbWorker::sendState, this, &MainWindow::updateState);
+    connect(this->usbWorker, &UsbWorker::sendDat, this, &MainWindow::updateDatState);
+    connect(this->usbWorker, &UsbWorker::sendSup, this, &MainWindow::updateSupState);
     connect(this->usbWorker, &UsbWorker::sendConnected, this, &MainWindow::updateConnected);
     this->usbWorker->start();
 
@@ -34,10 +35,12 @@ void MainWindow::updateConnected(bool connected) {
     }
 }
 
-
-void MainWindow::updateState(const DatMessage &msg) {
-    //std::cout << "new state arrived for slot " << (unsigned)msg.getSlot() << std::endl;
+void MainWindow::updateSupState(const SupMessage &msg) {
     msg.printBuf();
+}
+
+void MainWindow::updateDatState(const DatMessage &msg) {
+    //msg.printBuf();
     //msg.printSummary();
     //msg.print();
     switch(msg.getSlotId()) {
