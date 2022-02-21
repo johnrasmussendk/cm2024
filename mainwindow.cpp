@@ -15,6 +15,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::updateState(const DatMessage &msg) {
-    std::cout << "new state arrived for slot " << msg.getSlot() << std::endl;
-    msg.print();
+    //std::cout << "new state arrived for slot " << (unsigned)msg.getSlot() << std::endl;
+    //msg.printBuf();
+    msg.printSummary();
 }

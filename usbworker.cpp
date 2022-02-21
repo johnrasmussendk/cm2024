@@ -28,20 +28,16 @@ void UsbWorker::run()
         while(true) {
 
             int len = readMessage();
-            //printf("[%d]:", len);
-            //for(int i=0;i<len; i++) {
-            //    printf("%02x ", (unsigned char)buf[i]);
-            //}
-            //printf("\n");
 
             if(strncmp(this->buf,"CM2024 SUP", 10)==0) {
-                std::cout << "SUP" << std::endl;
+                std::cout << "SUP todo" << std::endl;
 
             } else if (strncmp(this->buf,"CM2024 DAT", 10)==0) {
                 //std::cout << "DAT" << std::endl;
                 DatMessage dat = DatMessage(buf+10, len-10);
-                //dat->print();
+                //dat.printBuf();
                 emit sendState(dat);
+
             } else {
                 std::cout << "tf is this" << std::endl;
             }

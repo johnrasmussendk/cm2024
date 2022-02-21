@@ -15,7 +15,8 @@ DatMessage::DatMessage(char* buffer, int16_t len) {
 
 DatMessage::DatMessage(const DatMessage &other) {
     this->buffer = new char[other.getBufferLen()];
-    memcpy(this->buffer, buffer, other.getBufferLen());
+    this->bufferLen = other.getBufferLen();
+    memcpy(this->buffer, other.getBuffer(), other.getBufferLen());
 }
 
 DatMessage::~DatMessage() {
@@ -24,19 +25,19 @@ DatMessage::~DatMessage() {
 
 void DatMessage::print() const
 {
-    std::cout << "sc:           " << this->getSC() << std::endl;
-    std::cout << "slot:         " << (unsigned)this->getSlot() << std::endl;
-    std::cout << "chemistry:    " << (unsigned)this->getChemistry() << std::endl;
+    std::cout << "counter:      " << this->getCounter() << std::endl;
+    std::cout << "slot:         " << this->getSlotStr() << std::endl;
+    std::cout << "chemistry:    " << this->getChemistryStr() << std::endl;
     std::cout << "unknown1:     " << std::hex << (unsigned)this->getUnknown1() << std::dec << std::endl;
-    std::cout << "programState: " << (unsigned)this->getProgramState() << std::endl;
-    std::cout << "program:      " << (unsigned)this->getProgram() << std::endl;
-    std::cout << "step:         " << (unsigned)this->getStep() << std::endl;
+    std::cout << "programState: " << this->getProgramStateStr() << std::endl;
+    std::cout << "program:      " << this->getProgramStr() << std::endl;
+    std::cout << "step:         " << this->getStepStr() << std::endl;
     std::cout << "minutes:      " << this->getMinutes() << std::endl;
     std::cout << "voltage:      " << this->getVoltage()/1000.0 << std::endl;
     std::cout << "current:      " << this->getCurrent()/1000.0 << std::endl;
     std::cout << "ccap:         " << this->getChargeCap()/100.0 << std::endl;
     std::cout << "dcap:         " << this->getDischargeCap()/100.0 << std::endl;
-    std::cout << "unknown2:     " << std::hex << (unsigned)this->getUnknown2() << std::dec << std::endl;
+//     std::cout << "unknown2:     " << std::hex << (unsigned)this->getUnknown2() << std::dec << std::endl;
     std::cout << "unknown3:     " << std::hex << (unsigned)this->getUnknown3() << std::dec << std::endl;
     std::cout << "maxCharge:    " << (unsigned)this->getMaxCharge() << std::endl;
     std::cout << "unknown4:     " << std::hex << (unsigned)this->getUnknown4() << std::dec << std::endl;
@@ -49,7 +50,20 @@ void DatMessage::print() const
     std::cout << "crc:          " << std::hex << this->getCrc() << std::dec << std::endl;
 }
 
-uint16_t DatMessage::getSC() const {
+void DatMessage::printSummary() const
+{
+    std::cout << (unsigned)this->getSlot() << ": " << this->getProgramStateStr() << ": " << this->getStepStr() << std::endl;
+}
+
+void DatMessage::printBuf() const {
+    printf("[%d]:", bufferLen);
+    for(int i=0;i<bufferLen; i++) {
+        printf("%02x ", (unsigned char)buffer[i]);
+    }
+    printf("\n");
+}
+
+uint16_t DatMessage::getCounter() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[0], 2);
     return htons(temp); // sequence counter is little endian unlike other fields!
@@ -59,8 +73,49 @@ uint8_t DatMessage::getSlot() const {
     return this->buffer[2];
 }
 
+std::string DatMessage::getSlotStr() const {
+    switch(getSlot()) {
+        case 0:
+            return "Slot 1";
+        case 1:
+            return "Slot 2";
+        case 2:
+            return "Slot 3";
+        case 3:
+            return "Slot 4";
+        case 4:
+            return "Slot 5";
+        case 5:
+            return "Slot 6";
+        case 6:
+            return "Slot 7";
+        case 7:
+            return "Slot 8";
+        case 8:
+            return "Slot A";
+        case 9:
+            return "Slot B";
+        default:
+            std::cout << "unknown chemistry state: " << (unsigned)getSlot() << std::endl;
+            return "Unknown";
+    }
+}
+
+
 uint8_t DatMessage::getChemistry() const {
     return this->buffer[3];
+}
+
+std::string DatMessage::getChemistryStr() const {
+    switch(getChemistry()) {
+        case 1:
+            return "NiHM/Cd";
+        case 2:
+            return "NiZn";
+        default:
+            std::cout << "unknown chemistry state: " << (unsigned)getChemistry() << std::endl;
+            return "Unknown";
+    }
 }
 
 uint8_t DatMessage::getUnknown1() const {
@@ -71,12 +126,75 @@ uint8_t DatMessage::getProgramState() const {
     return this->buffer[5];
 }
 
+std::string DatMessage::getProgramStateStr() const {
+    return programAsString(getProgramState());
+}
+
 uint8_t DatMessage::getProgram() const {
     return this->buffer[6];
 }
 
+std::string DatMessage::getProgramStr() const {
+    return programAsString(getProgram());
+}
+
+std::string DatMessage::programAsString(uint8_t program) const {
+    switch(program) {
+        case 0:
+            return "None/Empty";
+        case 1:
+            return "Recharge";
+        case 2:
+            return "Discharge";
+        case 3:
+            return "Pro-charge";
+        case 4:
+            return "Cycle";
+        case 5:
+            return "Alive";
+        case 6:
+            return "Maximize";
+        case 7:
+            return "No setup";
+        //case 8:
+        //    return "Unknown(8)";
+        //case 9:
+        //    return "Unknown(9)";
+        case 10:
+            return "Error";
+        case 11:
+            return "Complete";
+        default:
+            std::cout << "unknown program state: " << (unsigned)program << std::endl;
+            return "Unknown";
+    }
+}
+
+
 uint8_t DatMessage::getStep() const {
     return this->buffer[7];
+}
+
+std::string DatMessage::getStepStr() const {
+     switch(getStep()) {
+        case 0:
+            return "Idle";
+        case 1:
+            return "Charging";
+        case 2:
+            return "Discharging";
+        case 3:
+            return "Ready";
+        case 4:
+            return "Unknown";
+        case 5:
+            return "Cool Down";
+        case 6:
+            return "Error";
+        default:
+            std::cout << "unknown chemistry state: " << (unsigned)getChemistry() << std::endl;
+            return "Unknown";
+    }
 }
 
 uint16_t DatMessage::getMinutes() const {

@@ -12,13 +12,19 @@ public:
     DatMessage(const DatMessage &other);
     ~DatMessage();
 
-    uint16_t getSC() const;
+    uint16_t getCounter() const;
     uint8_t getSlot() const;
+    std::string getSlotStr() const;
     uint8_t getChemistry() const;
+    std::string getChemistryStr() const;
     uint8_t getUnknown1() const;
     uint8_t getProgramState() const;
+    std::string getProgramStateStr() const;
     uint8_t getProgram() const;
+    std::string getProgramStr() const;
+    std::string programAsString(uint8_t program) const;
     uint8_t getStep() const;
+    std::string getStepStr() const;
     uint16_t getMinutes() const;
     uint16_t getVoltage() const; // in units of 0.001
     uint16_t getCurrent() const; // in units of 0.001
@@ -37,6 +43,8 @@ public:
     uint16_t getCrc() const;
 
     void print() const;
+    void printSummary() const;
+    void printBuf() const;
 
     char* getBuffer() const { return buffer; };
     int getBufferLen() const { return bufferLen; };
