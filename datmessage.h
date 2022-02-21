@@ -24,7 +24,6 @@ public:
     std::string getSlotIdStr() const;
     uint8_t getChemistry() const;
     std::string getChemistryStr() const;
-    uint8_t getUnknown1() const;
     uint8_t getProgramState() const;
     std::string getProgramStateStr() const;
     uint8_t getProgram() const;
@@ -42,16 +41,10 @@ public:
     std::string getChargeCapStr() const;
     uint32_t getDischargeCap() const; // in units of 0.01
     std::string getDischargeCapStr() const;
-    uint8_t getUnknown2() const;
-    uint8_t getUnknown3() const;
     uint8_t getMaxCharge() const;
-    uint8_t getUnknown4() const;
-    uint8_t getUnknown5() const;
     uint8_t getPause() const;
     uint16_t getCapacity() const;
     uint8_t getDischarge() const;
-    uint8_t getUnknown6() const;
-    uint8_t getUnknown7() const;
     uint16_t getCrc() const;
 
     void print() const;

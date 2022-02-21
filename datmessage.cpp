@@ -11,7 +11,7 @@ void DatMessage::print() const
     std::cout << "counter:      " << this->getCounter() << std::endl;
     std::cout << "slot:         " << this->getSlotIdStr() << std::endl;
     std::cout << "chemistry:    " << this->getChemistryStr() << std::endl;
-    std::cout << "unknown1:     " << std::hex << (unsigned)this->getUnknown1() << std::dec << std::endl;
+    std::cout << "unknown1:     " << std::hex << this->buffer[4] << std::dec << std::endl;
     std::cout << "programState: " << this->getProgramStateStr() << std::endl;
     std::cout << "program:      " << this->getProgramStr() << std::endl;
     std::cout << "step:         " << this->getStepStr() << std::endl;
@@ -20,17 +20,29 @@ void DatMessage::print() const
     std::cout << "current:      " << this->getCurrent()/1000.0 << std::endl;
     std::cout << "ccap:         " << this->getChargeCap()/100.0 << std::endl;
     std::cout << "dcap:         " << this->getDischargeCap()/100.0 << std::endl;
-//     std::cout << "unknown2:     " << std::hex << (unsigned)this->getUnknown2() << std::dec << std::endl;
-    std::cout << "unknown3:     " << std::hex << (unsigned)this->getUnknown3() << std::dec << std::endl;
+
+    std::cout << "unknown bytes:";
+    for(int i=22; i<24; i++) {
+        printf("%02x ", (unsigned char)this->buffer[i]);
+    }
+    std::cout << std::endl;
+
     std::cout << "maxCharge:    " << (unsigned)this->getMaxCharge() << std::endl;
-    std::cout << "unknown4:     " << std::hex << (unsigned)this->getUnknown4() << std::dec << std::endl;
-    std::cout << "unknown5:     " << std::hex << (unsigned)this->getUnknown5() << std::dec << std::endl;
+    std::cout << "unknown bytes:";
+    for(int i=25; i<27; i++) {
+        printf("%02x ", (unsigned char)this->buffer[i]);
+    }
+    std::cout << std::endl;
     std::cout << "pause:        " << (unsigned)this->getPause() << std::endl;
     std::cout << "capacity:     " << this->getCapacity() << std::endl;
     std::cout << "discharge:    " << (unsigned)this->getDischarge() << std::endl;
-    std::cout << "unknown6:     " << std::hex << (unsigned)this->getUnknown6() << std::dec << std::endl;
-    std::cout << "unknown7:     " << std::hex << (unsigned)this->getUnknown7() << std::dec << std::endl;
+    for(int i=31; i<33; i++) {
+        printf("%02x ", (unsigned char)this->buffer[i]);
+    }
+    std::cout << std::endl;
+
     std::cout << "crc:          " << std::hex << this->getCrc() << std::dec << std::endl;
+    std::cout << std::endl;
 }
 
 void DatMessage::printSummary() const
@@ -93,10 +105,6 @@ std::string DatMessage::getChemistryStr() const {
             std::cout << "unknown chemistry state: " << (unsigned)getChemistry() << std::endl;
             return "Unknown";
     }
-}
-
-uint8_t DatMessage::getUnknown1() const {
-    return this->buffer[4];
 }
 
 uint8_t DatMessage::getProgramState() const {
@@ -243,24 +251,8 @@ std::string DatMessage::getDischargeCapStr() const {
     return out.str();
 }
 
-uint8_t DatMessage::getUnknown2() const {
-    return this->buffer[22];
-}
-
-uint8_t DatMessage::getUnknown3() const {
-    return this->buffer[23];
-}
-
 uint8_t DatMessage::getMaxCharge() const {
     return this->buffer[24];
-}
-
-uint8_t DatMessage::getUnknown4() const {
-    return this->buffer[25];
-}
-
-uint8_t DatMessage::getUnknown5() const {
-    return this->buffer[26];
 }
 
 uint8_t DatMessage::getPause() const {
@@ -275,14 +267,6 @@ uint16_t DatMessage::getCapacity() const {
 
 uint8_t DatMessage::getDischarge() const {
     return this->buffer[30];
-}
-
-uint8_t DatMessage::getUnknown6() const {
-    return this->buffer[31];
-}
-
-uint8_t DatMessage::getUnknown7() const {
-    return this->buffer[32];
 }
 
 uint16_t DatMessage::getCrc() const {

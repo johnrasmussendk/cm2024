@@ -37,6 +37,7 @@ void MainWindow::updateConnected(bool connected) {
 
 void MainWindow::updateSupState(const SupMessage &msg) {
     msg.printBuf();
+    msg.print();
 }
 
 void MainWindow::updateDatState(const DatMessage &msg) {
