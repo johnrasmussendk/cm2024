@@ -4,52 +4,104 @@
 #include "supmessage.h"
 
 #include <fcntl.h>
+#include <iomanip>
 #include <iostream>
 #include <termios.h>
 #include <unistd.h>
 
 
-UsbWorker::UsbWorker(QObject *parent)
-    : QThread(parent)
-{
+UsbWorker::UsbWorker(const char* file_name, const bool dump_output, const char format, QObject *parent)
+    :   QThread(parent),
+        file_name(file_name),
+        dump_output(dump_output),
+        format(format) {
+    dump_output_disabled = false;
+    if (('1' <= this->format && this->format <= '8') && ('A' <= this->format && this->format <= 'B')) {
+        std::cout << "Minutes Step mV mA C-cap/mAh D-cap/mAh" << std::endl;
+    }
 }
 
-UsbWorker::~UsbWorker()
-{
-    if(this->fd != -1) {
+UsbWorker::~UsbWorker() {
+    if (this->fd != -1) {
         close(this->fd);
         this->fd = -1;
+    }
+    if (this->fd_dump_output != -1) {
+        close(this->fd_dump_output);
+        this->fd_dump_output = -1;
     }
 
     wait();
 }
 
-void UsbWorker::run()
-{
-    while(true) {
-
-        if(connect == true) {
-            if(fd == -1) {
-                initPort();
+void UsbWorker::readFile() {
+    this->fd = open(this->file_name, O_RDWR);
+    if (this->fd == -1) {
+        std::cerr << "Cannot open file: " << this->file_name << std::endl;
+        return;
+    }
+    // The first data might not be from the beginning of a message.
+    bool first_data = true;
+    int length;
+    while (0 < (length = readMessage())) {
+        if (strncmp(buf,"CM2024 SUP", 10) == 0) {
+            const SupMessage supMessage = getSupMessage(length);
+        } else if (strncmp(buf,"CM2024 DAT", 10)==0) {
+            const DatMessage datMessage = getDatMessage(length);
+        } else {
+            if (!first_data) {
+                std::cerr << "Unknown message content data" << std::endl;
             }
-            if(fd != -1) {
+        }
+        first_data = false;
+    }
+    if (this->fd != -1) {
+        if (0 != close(this->fd)) {
+            std::cerr << "Cannot close file: " << this->file_name << std::endl;
+        }
+        this->fd = -1;
+    }
+}
+
+void UsbWorker::writeCommand(const unsigned char command, const unsigned char value) {
+    unsigned char buf[11] = {command, value, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
+    this->writeBuffer(buf, 11);
+}
+
+void UsbWorker::toggleConnect() {
+    mutex.lock();
+    connect = !connect;
+    mutex.unlock();
+}
+
+void UsbWorker::run() {
+    // The first data might not be from the begining of a message.
+    bool first_data = false;
+    while(true) {
+        if (connect) {
+            if (fd == -1) {
+                initPort();
+                first_data = true;
+            }
+            if (fd != -1) {
                 emit sendConnected(true);
 
-                int len = readMessage();
-
-                if(strncmp(this->buf,"CM2024 SUP", 10)==0) {
-                    SupMessage sup = SupMessage(buf+10, len-10);
-                    emit sendSup(sup);
-
-                } else if (strncmp(this->buf,"CM2024 DAT", 10)==0) {
-                    DatMessage dat = DatMessage(buf+10, len-10);
-                    emit sendDat(dat);
+                int length = readMessage();
+                if (strncmp(this->buf,"CM2024 SUP", 10) == 0) {
+                    const SupMessage supMessage = getSupMessage(length);
+                    emit sendSup(supMessage);
+                } else if (strncmp(this->buf,"CM2024 DAT", 10) == 0) {
+                    const DatMessage datMessage = getDatMessage(length);
+                    emit sendDat(datMessage);
                 } else {
-                    std::cout << "tf is this" << std::endl;
+                    if (!first_data) {
+                        std::cerr << "Unknown message content data" << std::endl;
+                    }
                 }
+                first_data = false;
             }
         } else {
-            if(fd != -1) {
+            if (fd != -1) {
                 close(fd);
                 fd = -1;
                 emit sendConnected(false);
@@ -62,14 +114,14 @@ void UsbWorker::run()
 
 void UsbWorker::initPort() {
     this->fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY);
-    if(this->fd == -1) {
+    if (this->fd == -1) {
         std::cerr << "Error opening /dev/ttyUSB0. Check permissions and lsof /dev/ttyUSB0." << std::endl;
         return;
     } else {
         struct termios tty;
         memset (&tty, 0, sizeof tty);
 
-        if( tcgetattr(this->fd, &tty) != 0 ) {
+        if (tcgetattr(this->fd, &tty) != 0) {
             std::cout << "Error " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
             return;
         }
@@ -110,21 +162,153 @@ int UsbWorker::readMessage() {
     unsigned char ch = 0;
     unsigned char prevch = 0;
     int n = 0;
-    int len = 0;
+    int length = 0;
 
     memset(this->buf, '\0', sizeof this->buf);
 
     do {
         prevch = ch;
         n = read(this->fd, &ch, 1);
-        this->buf[len] = ch;
-        len += n;
-    } while((prevch!='\r' || ch!='\n') && len<=47);
-    return len;
+        this->buf[length] = ch;
+        length += n;
+        if (this->file_name != nullptr && length == 0) {
+            break;
+        }
+    } while ((prevch!='\r' || ch!='\n') && length<=47);
+    dumpRawDate(length);
+    return length;
 }
 
-void UsbWorker::toggleConnect() {
-    mutex.lock();
-    connect = !connect;
-    mutex.unlock();
+void UsbWorker::dumpRawDate(const int length) {
+    if (this->dump_output && !this->dump_output_disabled) {
+        if (this->fd_dump_output == -1) {
+            this->fd_dump_output = open("./cm2024_dump.bin", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH);
+            if (this->fd_dump_output == -1) {
+                std::cerr << "Error opening 'cm2024_dump.bin' for writing." << std::endl;
+                this->dump_output_disabled = true;
+            }
+        }
+        if (this->fd_dump_output != -1) {
+            const int n = write(this->fd_dump_output, buf, length);
+            if (n != length) {
+                std::cerr << "Cannot write buffer. Wrote: " << n << ", length: " + length << ". File is closed" << std::endl;
+                close(this->fd_dump_output);
+                this->fd_dump_output = -1;
+                this->dump_output_disabled = true;
+            }
+        }
+    }
 }
+
+SupMessage UsbWorker::getSupMessage(const int length) {
+    const SupMessage supMessage = SupMessage(buf+10, length-10);
+    supMessage.print_format(this->format);
+    return supMessage;
+}
+
+DatMessage UsbWorker::getDatMessage(const int length) {
+    const DatMessage datMessage = DatMessage(buf+10, length-10);
+    datMessage.print_format(this->format);
+    const uint16_t received_crc = datMessage.getCrc();
+    const uint16_t calculated_crc = this->crcModbus((unsigned char*)buf+12, length-16);
+    if (received_crc != calculated_crc) {
+        std::cerr << "Unexpected DAT CRC, calculated: ";
+        std::cerr << std::setfill('0') << std::setw(2) << std::hex << (int) calculated_crc;
+        std::cerr << ", received: ";
+        std::cerr << std::setfill('0') << std::setw(2) << std::hex << (int) received_crc;
+        std::cerr << std::endl;
+    }
+    return datMessage;
+}
+
+void UsbWorker::writeBuffer(const unsigned char* buffer, const size_t length) {
+    if (this->fd == -1) {
+        std::cerr << "Cannot write to file." << std::endl;
+        return;
+    }
+    int n = write(this->fd, buffer, length);
+    if (n != length) {
+        std::cerr << "Cannot write buffer. Wrote: " << n << ", length: " << length << std::endl;
+        return;
+    }
+
+    const uint16_t cm2024_crc_modbus = this->cm2024CrcModbus(buffer, length);
+    unsigned char cm2024_crc_modbus_buffer[2];
+    cm2024_crc_modbus_buffer[0] = cm2024_crc_modbus >> 8;
+    cm2024_crc_modbus_buffer[1] = cm2024_crc_modbus & 0xFF;
+    n = write(this->fd, cm2024_crc_modbus_buffer, 2);
+    if (n !=2) {
+        std::cerr << "Cannot write CM2024 CRC Modbus buffer. Wrote: " << n << ", length: " << 2 << std::endl;
+        return;
+    }
+}
+
+uint16_t UsbWorker::cm2024CrcModbus(const unsigned char* buffer, const size_t length) {
+    const uint16_t crc_modbus = this->crcModbus(buffer, length);
+    const uint16_t high_byte = crc_modbus >> 8;
+    const uint16_t low_byte = crc_modbus & 0xFF;
+    const uint16_t sum_high_byte_and_low_byte = high_byte + low_byte;
+    const uint16_t carry_of_sum_high_byte_and_low_byte = sum_high_byte_and_low_byte >> 8;
+    const uint16_t cm2024_crc_modbus = crc_modbus + high_byte + carry_of_sum_high_byte_and_low_byte;
+    return cm2024_crc_modbus;
+}
+
+// SEE: https://github.com/lammertb/libcrc/blob/master/src/crc16.c
+/*
+ * uint16_t crc_modbus( const unsigned char *input_str, size_t num_bytes );
+ *
+ * The function crc_modbus() calculates the 16 bits Modbus CRC in one pass for
+ * a byte string of which the beginning has been passed to the function. The
+ * number of bytes to check is also a parameter.
+ */
+uint16_t UsbWorker::crcModbus(const unsigned char *buffer, const size_t length) {
+    uint16_t crc;
+    const unsigned char *ptr;
+    size_t a;
+
+    if ( ! this->crc_tab16_init ) {
+        this->initCrc16Tab();
+    }
+    const uint16_t CRC_START_MODBUS = 0xFFFF;
+    crc = CRC_START_MODBUS;
+    ptr = buffer;
+    if ( ptr != NULL ) {
+        for (a=0; a<length; a++) {
+            crc = (crc >> 8) ^ this->crc_tab16[ (crc ^ (uint16_t) *ptr++) & 0x00FF ];
+        }
+    }
+    return crc;
+
+} /* crc_modbus */
+
+// SEE: https://github.com/lammertb/libcrc/blob/master/src/crc16.c
+/*
+ * void init_crc16_tab();
+ *
+ * For optimal performance uses the CRC16 routine a lookup table with values
+ * that can be used directly in the XOR arithmetic in the algorithm. This
+ * lookup table is calculated by the init_crc16_tab() routine, the first time
+ * the CRC function is called.
+ */
+void UsbWorker::initCrc16Tab() {
+    uint16_t i;
+    uint16_t j;
+    uint16_t crc;
+    uint16_t c;
+
+    const uint16_t CRC_POLY_16 = 0xA001;
+    for (i=0; i<256; i++) {
+        crc = 0;
+        c   = i;
+        for (j=0; j<8; j++) {
+            if ( (crc ^ c) & 0x0001 ) {
+                crc = ( crc >> 1 ) ^ CRC_POLY_16;
+            } else {
+                crc =   crc >> 1;
+            }
+            c = c >> 1;
+        }
+        this->crc_tab16[i] = crc;
+    }
+    this->crc_tab16_init = true;
+} /* init_crc16_tab */

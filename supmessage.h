@@ -9,8 +9,6 @@ class SupMessage : public Message {
     using Message::Message;
 
 public:
-    void print() const;
-
     uint8_t getSlotId() const;
     uint8_t getChemistry() const;
     uint8_t getProgram() const;
@@ -22,6 +20,8 @@ public:
     uint8_t getSdSlotStatus() const;
     uint16_t getCrc() const;
 
+    void print_format(const char format) const;
+    void print() const;
 };
 
 Q_DECLARE_METATYPE(SupMessage);

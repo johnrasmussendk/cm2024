@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1625</width>
+    <width>825</width>
     <height>1044</height>
    </rect>
   </property>
@@ -14,12 +14,12 @@
    <string>cm2024-qt</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QFrame" name="frame">
+   <widget class="QFrame" name="frame_1">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>40</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -85,7 +85,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -111,7 +111,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -202,7 +202,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -253,9 +253,9 @@
    <widget class="QFrame" name="frame_2">
     <property name="geometry">
      <rect>
-      <x>1410</x>
+      <x>470</x>
       <y>40</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -321,7 +321,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -347,7 +347,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -438,7 +438,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -491,7 +491,7 @@
      <rect>
       <x>10</x>
       <y>220</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -557,7 +557,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -583,7 +583,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -674,7 +674,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -725,9 +725,9 @@
    <widget class="QFrame" name="frame_4">
     <property name="geometry">
      <rect>
-      <x>1410</x>
+      <x>470</x>
       <y>220</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -793,7 +793,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -819,7 +819,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -910,7 +910,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -963,7 +963,7 @@
      <rect>
       <x>10</x>
       <y>400</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -1029,7 +1029,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1055,7 +1055,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1146,7 +1146,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1197,9 +1197,9 @@
    <widget class="QFrame" name="frame_6">
     <property name="geometry">
      <rect>
-      <x>1410</x>
+      <x>470</x>
       <y>400</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -1265,7 +1265,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1291,7 +1291,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1382,7 +1382,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1435,7 +1435,7 @@
      <rect>
       <x>10</x>
       <y>580</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -1501,7 +1501,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1527,7 +1527,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1618,7 +1618,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1669,9 +1669,9 @@
    <widget class="QFrame" name="frame_8">
     <property name="geometry">
      <rect>
-      <x>1410</x>
+      <x>470</x>
       <y>580</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -1737,7 +1737,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1763,7 +1763,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1854,7 +1854,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1907,7 +1907,7 @@
      <rect>
       <x>10</x>
       <y>760</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -1973,7 +1973,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -1999,7 +1999,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -2090,7 +2090,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -2141,9 +2141,9 @@
    <widget class="QFrame" name="frame_B">
     <property name="geometry">
      <rect>
-      <x>1410</x>
+      <x>470</x>
       <y>760</y>
-      <width>201</width>
+      <width>240</width>
       <height>181</height>
      </rect>
     </property>
@@ -2209,7 +2209,7 @@
       <rect>
        <x>100</x>
        <y>30</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -2235,7 +2235,7 @@
       <rect>
        <x>100</x>
        <y>50</y>
-       <width>71</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -2326,7 +2326,7 @@
       <rect>
        <x>100</x>
        <y>130</y>
-       <width>91</width>
+       <width>130</width>
        <height>22</height>
       </rect>
      </property>
@@ -2377,7 +2377,7 @@
    <widget class="QPushButton" name="btn_connect">
     <property name="geometry">
      <rect>
-      <x>1490</x>
+      <x>290</x>
       <y>0</y>
       <width>121</width>
       <height>38</height>
@@ -2390,10 +2390,10 @@
      <string>Disconnected</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_2">
+   <widget class="QLabel" name="label_combo">
     <property name="geometry">
      <rect>
-      <x>660</x>
+      <x>290</x>
       <y>80</y>
       <width>141</width>
       <height>22</height>
@@ -2406,9 +2406,9 @@
    <widget class="QComboBox" name="comboBox">
     <property name="geometry">
      <rect>
-      <x>810</x>
-      <y>70</y>
-      <width>121</width>
+      <x>290</x>
+      <y>110</y>
+      <width>100</width>
       <height>36</height>
      </rect>
     </property>
@@ -2457,6 +2457,50 @@
       <string>8</string>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>Auto-dim</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label_charge_limit_percentage">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>180</y>
+      <width>110</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Max charge %</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="charge_limit_percentage">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>210</y>
+      <width>80</width>
+      <height>22</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="release_sd_card">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>250</y>
+      <width>100</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Click to release the SD Card</string>
+    </property>
+    <property name="text">
+     <string>Release SD</string>
+    </property>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>

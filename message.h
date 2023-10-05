@@ -3,13 +3,10 @@
 
 #include <string>
 
-//#include <QMetaType>
-//#include <stdint.h>
-
 class Message {
 public:
     Message();
-    Message(char* buffer, int16_t len);
+    Message(char* buffer, const int16_t len);
     Message(const Message &other);
     ~Message();
 
@@ -18,11 +15,10 @@ public:
     int getBufferLen() const { return bufferLen; };
 
 protected:
-
     char* buffer;
+
+private:
     int bufferLen;
 };
-
-//Q_DECLARE_METATYPE(Message);
 
 #endif // MESSAGE_HPP_INCLUDED

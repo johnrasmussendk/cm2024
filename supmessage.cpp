@@ -47,20 +47,27 @@ uint16_t SupMessage::getCrc() const {
     return temp;
 }
 
+void SupMessage::print_format(const char format) const {
+    if (format == 'd') {
+        printBuf();
+        print();
+    }
+}
+
 void SupMessage::print() const {
-    std::cout << "unknown bytes: ";
+    std::cout << "unknown SUP bytes: ";
     for(int i=0; i<9; i++) {
         printf("%02x ", (unsigned char)this->buffer[i]);
     }
     std::cout << std::endl;
-    std::cout << "slotId :        " << (unsigned)getSlotId() << std::endl;
-    std::cout << "chemistry:      " << (unsigned)getChemistry()  << std::endl;
-    std::cout << "program :       " << (unsigned)getProgram()  << std::endl;
-    std::cout << "max charge:     " << (unsigned)getMaxCharge()  << std::endl;
-    std::cout << "discharge rate: " << (unsigned)getDischargeRate()  << std::endl;
-    std::cout << "capacity:       " << (unsigned)getCapacity()  << std::endl;
-    std::cout << "sd card status: " << (unsigned)getSdCardStatus()  << std::endl;
-    std::cout << "cool minutes:   " << (unsigned)getCoolMinutes()  << std::endl;
+    std::cout << "slotId :        " << (unsigned) getSlotId() << std::endl;
+    std::cout << "chemistry:      " << (unsigned) getChemistry() << std::endl;
+    std::cout << "program:        " << (unsigned) getProgram() << std::endl;
+    std::cout << "max charge:     " << (unsigned) getMaxCharge() << std::endl;
+    std::cout << "discharge rate: " << (unsigned) getDischargeRate() << std::endl;
+    std::cout << "capacity:       " << (unsigned) getCapacity() << std::endl;
+    std::cout << "sd card status: " << (unsigned) getSdCardStatus() << std::endl;
+    std::cout << "cool minutes:   " << (unsigned) getCoolMinutes() << std::endl;
 
     std::cout << "padding:        ";
     for(int i=18; i<21; i++) {
@@ -68,9 +75,9 @@ void SupMessage::print() const {
     }
     std::cout << std::endl;
 
-    std::cout << "sd slot status: " << (unsigned)getSdSlotStatus()  << std::endl;
+    std::cout << "sd slot status: " << (unsigned) getSdSlotStatus() << std::endl;
 
-    std::cout << "unknown bytes: ";
+    std::cout << "unknown SUP bytes: ";
     for(int i=22; i<33; i++) {
         printf("%02x ", (unsigned char)this->buffer[i]);
     }

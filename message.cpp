@@ -1,17 +1,15 @@
 #include "message.h"
 
-#include <iostream>
-#include <sstream>
 #include <string.h>
 
 Message::Message() {
-    bufferLen = 37;
-    this->buffer = new char[bufferLen];
-    memset(this->buffer, '\0', bufferLen);
+    this->bufferLen = 37;
+    this->buffer = new char[this->bufferLen];
+    memset(this->buffer, '\0', this->bufferLen);
 }
 
-Message::Message(char* buffer, int16_t len) {
-    bufferLen = len;
+Message::Message(char* buffer, const int16_t len) {
+    this->bufferLen = len;
     this->buffer = new char[len];
     memcpy(this->buffer, buffer, len);
 }
@@ -27,8 +25,8 @@ Message::~Message() {
 }
 
 void Message::printBuf() const {
-    printf("[%d]:", bufferLen);
-    for(int i=0;i<bufferLen; i++) {
+    printf("MessageBuffer [%d]:", this->bufferLen);
+    for(int i=0;i<this->bufferLen; i++) {
         printf("%02x ", (unsigned char)buffer[i]);
     }
     printf("\n");
