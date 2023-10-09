@@ -3,7 +3,7 @@ The CRC-16-MODBUS implementation is copied from https://github.com/lammertb/libc
 
 Added:
   1) Charge battery to a percentage of the full capacity of the battery.
-  2) Command line options.
+  2) Command line arguments.
 
 This README has been tested on Ubuntu 20.04 and/or Ubuntu 22.04.
 
@@ -11,7 +11,7 @@ This README has been tested on Ubuntu 20.04 and/or Ubuntu 22.04.
 **************************************************
 * Command Line Arguments                         *
 **************************************************
-Command Line Argument, number:
+The Command Line Arguments are: ./cm2024 <file-name> <format> <slot>
   1) The file name argument, either:
       '-usb'           : Show GUI.         Reads from the USB-connection, '/dev/ttyUSB0'
       '-usb_dump'      : Show GUI.         Reads from the USB-connection, '/dev/ttyUSB0'. Write the input to the 'cm2024_dump.bin' file. The file is overwritten if it exists.
@@ -19,7 +19,7 @@ Command Line Argument, number:
   2) The format argument, either: (Can be specified for any file name argument. Must be specified if the file name argument is neither '-usb' nor '-usb_dump')
       'default'   : The existing and default print format. The slot argument must NOT be specified.
       'csv'       : Output CSV data for the given slot. The slot argument must be specified, see below.
-  3) The slot, either: (Can only be specified if the format argument is 'csv')
+  3) The slot argument, either: (Can only be specified if the format argument is 'csv')
       '1' .. '8'  : Output CSV data for this slot only
       'A' .. 'B'  : Output CSV data for this slot only
 
@@ -28,16 +28,17 @@ Command Line Argument, number:
 * Functionality                                  *
 **************************************************
 Added functionality:
-  1) LCD Brightness can be changed from the gui.
-  2) The SD Card can be relased or unmounted from the gui.
-  3) A batteri can be charged to a certain percentage of the capacity.
-       - Set the "Max charge %" in the gui to the percentage of the capacity of the battery.
+  1) LCD Brightness can be changed from the GUI.
+  2) The SD Card can be released or unmounted from the GUI.
+  3) Charge a battery to a percentage of the full capacity of the battery.
+       - Set the "Max charge %" in the GUI to the percentage of the capacity of the battery.
        - Important, select the "Cycle" program for the battery.
-       - The "Max charge %" turns green in the gui when the percentage input value is valid.
-       - The slot turns green in the gui when the "Max charge %" is valid and the slot is running the program "Cycle".
+       - The "Max charge %" turns green in the GUI when the percentage input value is valid.
+       - The slot turns green in the GUI when the "Max charge %" is valid and the slot is running the program "Cycle".
        - During the "Cycle" program after the battery has been discharged then an estimate for the remaining charge time is shown.
        - When the percentage is reached the "Cycle" program is cancelled and the charging stops.
        - Note, the estimate for the remaining charge time is changed when the charging current is changed.
+       - Note, the discharge capacity is used when calculating the percentage capacity. The discharge capacity is normally slightly less than the charge capacity, which would be more accurate to use.
 
 
 **************************************************
@@ -45,23 +46,23 @@ Added functionality:
 **************************************************
 The CRC-16-MODBUS implementation is copied from https://github.com/lammertb/libcrc/blob/master/src/crc16.c
 
-Online CRC-16-MODBUS calculators:
+Some online CRC-16-MODBUS calculators:
 https://crccalc.com/
 https://www.lammertbies.nl/comm/info/crc-calculation
 
 The CRC for sending a command is as follows.
 For details see UsbWorker::cm2024CrcModbus
-The steps:
   1) Calculate the CRC-16-MODBUS for the bytes from (and including) offset 0 to (and including) offset 10. A total of 11 bytes. All bytes are 0x00 except the first 2 bytes and the last byte is 0x01.
   2) Get the high byte and also the low byte of the CRC-16-MODBUS.
   3) Add the high byte to the CRC-16-MODBUS.
   4) If the sum of the high byte and the low byte exceeds 0xFF then add 0x01 to the CRC-16-MODBUS.
 
 The above is used for the following programs:
-  1) Cancel, 0x02
-  2) LCD brightness, 0x03
+  1) Cancel Slot, 0x02
+  2) LCD Brightness, 0x03
   3) Release or unmount the SD Card, 0x04
-Todo: the "Start" program.
+
+This CRC has not been verified with the "Start" program.
 
 
 **************************************************
@@ -70,35 +71,36 @@ Todo: the "Start" program.
 https://github.com/KuleRucket/cm2024/wiki#dat-message
 
 DAT Message:
-Offset 05: Not-Running(0), Running(1). Or Charging/Discharging active/not active.
-Offset 23: ??? Voltage-index.
-               Empty slot: 0x20.
-               Error slot: 0x09.
+Offset 05: Program Running. Not-Running(0), Running(1). Or Charging/Discharging active/not active. At least related: When pressing "START PROGRAM" it will be Not-Running(0) for the first minute then afterwards it will be Running(1)
+Offset 23: Voltage Index.
+               Error Slot: 0x09.
+               Empty Slot: 0x20.
                Else, seen values from 0x02 to 0x07.
-               Charge
+               When charging, the voltage index relates to the voltage as follows:
                    0.000V  <= 0x02 <= 1.375V
                    1.376V  <= 0x03 <= 1.390V
                    1.391V  <= 0x04 <= 1.405V
                    1.406V  <= 0x05 <= 1.420V
                    1.421V  <= 0x06 <= 1.510V
                    0x07: Finished
-               Discharge
+               When discharging, the voltage index relates to the voltage as follows:
                    0x02: Finished
                    0.000V  <= 0x03 <=  1.250V
                    1.251V  <= 0x04 <=  1.270V
                    1.271V  <= 0x05 <=  1.285V
                    1.286V  <= 0x06 <=  1.300V
                    1.301V  <= 0x07 <=  1.510V
-Offset 24: Trickle state. 0x00: No Trickle, 0x01: Trickle
-Offset 26: Slot status.
+Offset 24: Trickle State. Not-Trickle(0), Trickle(1). Matches Program-state (offset 6) with value Trickle(8).
+Offset 26: Slot Status.
                   0x00: Empty Slot.
                   0x01: Program running.
                   0x02: Determinating. Program just started within 5 seconds.
                   0x04: Program finished
-offset 27: Number of programs started for the slot since power up. The number increments on every "Start program".
-Offset 32: Maximum Discharge Rate as specified at start (see discharge rate table). Offset 31 is the Actual Dischargge Rate
+offset 27: Number of "START PROGRAM" for the slot since power up. The number increments on every "START PROGRAM". Counting starts from 0.
+Offset 32: Maximum Discharge Rate as specified at "START PROGRAM" (see discharge rate table). Offset 31 is the Actual Discharge Rate
 Offset 33: Step Index. The "Charge" program has one step. The "Cycle" program has three steps. The step index is the index of the steps of the program.
-           When the program is complete the step index is "one above max". That is when the "Cycle" program has finished the 3 steps then the step index is 4.
+           When the program is complete the step index is "max". That is when the "Cycle" program has finished the 3 steps then the step index is 3 (but 4 values: 0-3).
+           Counting starts from 0.
            Step index 1 has value 0x00:
               00: Step 1
               01: Step 2
