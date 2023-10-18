@@ -5,6 +5,10 @@
 #include <sstream>
 #include <string>
 
+const std::string AUTO                              = "Auto";
+const std::string EMPTY                             = "Empty";
+const std::string NIMH_CD                           = "NiMH/CD";
+const std::string NIZN                              = "NiZn";
 const std::string ERR                               = "ERR";
 const std::string NOT_AVAILABLE                     = "N/A";
 const int CHEMISTRY_EMPTY                           =  0;
@@ -34,8 +38,8 @@ const int TRICKLE_STATE_NOT_RUNNING                 =  0;
 const int TRICKLE_STATE_RUNNING                     =  1;
 const int MAX_CHARGE_AUTO                           =  0;
 const int MAX_CHARGE_3000MA                         =  6;
-const int PROGRAM_STATUS_EMPTY                      =  0;
-const int PROGRAM_STATUS_COMPLETE                   =  4;
+const int SD_CARD_LOG_NONE                          =  0;
+const int SD_CARD_LOG_COMPLETE                      =  4;
 
 const int VALIDATE_SLOT_ID_MIN                      =  0;
 const int VALIDATE_SLOT_ID_MAX                      =  9;
@@ -53,13 +57,24 @@ const int VALIDATE_TRICKLE_STATE_MIN                = TRICKLE_STATE_NOT_RUNNING;
 const int VALIDATE_TRICKLE_STATE_MAX                = TRICKLE_STATE_RUNNING;
 const int VALIDATE_MAX_CHARGE_MIN                   = MAX_CHARGE_AUTO;
 const int VALIDATE_MAX_CHARGE_MAX                   = MAX_CHARGE_3000MA;
-const int VALIDATE_PROGRAM_STATUS_MIN               = PROGRAM_STATUS_EMPTY;
-const int VALIDATE_PROGRAM_STATUS_MAX               = PROGRAM_STATUS_COMPLETE;
+const int VALIDATE_SD_CARD_LOG_MIN                  = SD_CARD_LOG_NONE;
+const int VALIDATE_SD_CARD_LOG_MAX                  = SD_CARD_LOG_COMPLETE;
 const int VALIDATE_DISCHARGE_MIN                    =  0;
 const int VALIDATE_DISCHARGE_CHEMISTRY_NIMH_CD_MAX  =  6;
 const int VALIDATE_DISCHARGE_CHEMISTRY_NIZN_MAX     =  4;
 const int VALIDATE_STEP_INDEX_MIN                   =  0;
 const int VALIDATE_STEP_INDEX_MAX                   = 20; // Program "Maximise" is unlimited
+
+// Maximal *included* value milliVolt, mV, at index:    0,    1,    2,    3,    4,    5,    6,    7
+const int8_t NIMH_CD_CHARGE_VOLTAGE_INDEX_MV_MIN    =   2;
+const int16_t NIMH_CD_CHARGE_VOLTAGE_INDEX_MV[]     = {-1,    0, 1375, 1390, 1405, 1420, 1530};
+const int8_t NIMH_CD_DISCHARGE_VOLTAGE_INDEX_MV_MIN =   3;
+const int16_t NIMH_CD_DISCHARGE_VOLTAGE_INDEX_MV[]  = {-1,   -1,    0, 1250, 1270, 1285, 1300, 1530};
+// TODO NiZn
+const int8_t NIZN_CHARGE_VOLTAGE_INDEX_MV_MIN       =   1;
+const int16_t NIZN_CHARGE_VOLTAGE_INDEX_MV[]        = {-1,   -1,   -1};
+const int8_t NIZN_DISCHARGE_VOLTAGE_INDEX_MV_MIN    =   1;
+const int16_t NIZN_DISCHARGE_VOLTAGE_INDEX_MV[]     = {-1,   -1,   -1};
 
 DatMessage::DatMessage(char* buffer, const int16_t len)
     : Message(buffer, len) {
@@ -72,7 +87,7 @@ DatMessage::DatMessage(char* buffer, const int16_t len)
     validateVoltageIndex();
     validateTrickleState();
     validateMaxCharge();
-    validateProgramStatus();
+    validateSdCardLog();
     validateDischarge();
     validateMaxDischarge();
     validateStepIndex();
@@ -86,54 +101,56 @@ void DatMessage::print_format(const char format) const {
     }
     int slotId = -1;
     switch(format) {
-        case '1' ... '8':   {   slotId = format - '1';
-                                break;
-                            }
-        case 'A' ... 'B':   {   slotId = format - 'A' + 8;
-                                break;
-                            }
+        case '1' ... '8': {
+                              slotId = format - '1';
+                              break;
+        }
+        case 'A' ... 'B': {
+                              slotId = format - 'A' + 8;
+                              break;
+        }
     }
     if (slotId != -1 && getSlotId() == slotId) {
         std::cout << getMinutes();
         std::cout << " " << getStepStr();
-        std::cout << " " << getVoltage()/1000.0;
-        std::cout << " " << getCurrent()/1000.0;
-        std::cout << " " << getChargeCap()/100.0;
-        std::cout << " " << getDischargeCap()/100.0;
+        std::cout << " " << getVoltageStr();
+        std::cout << " " << getCurrentStr();
+        std::cout << " " << getChargeCapStr();
+        std::cout << " " << getDischargeCapStr();
         std::cout << std::endl;
     }
 }
 
 void DatMessage::print() const {
-    std::cout << "counter:      " << this->getCounter() << std::endl;
-    std::cout << "slot:         " << this->getSlotIdStr() << std::endl;
-    std::cout << "chemistry:    #" << (unsigned) this->getChemistry() << ", " << this->getChemistryStr() << std::endl;
-    std::cout << "runningState: #" <<            this->getRunningState() << ", " << this->getRunningStateStr() << std::endl;
-    std::cout << "programState: #" << (unsigned) this->getProgramState() << ", " << this->getProgramStateStr() << std::endl;
-    std::cout << "program:      #" << (unsigned) this->getProgram() << ", " << this->getProgramStr() << std::endl;
-    std::cout << "step:         #" << (unsigned) this->getStep() << ", " << this->getStepStr() << std::endl;
-    std::cout << "minutes:      " << this->getMinutes() << std::endl;
-    std::cout << "voltage:      " << this->getVoltage()/1000.0 << std::endl;
-    std::cout << "current:      " << this->getCurrent()/1000.0 << std::endl;
-    std::cout << "chargeCap:    " << this->getChargeCap()/100.0 << std::endl;
-    std::cout << "dischargeCap: " << this->getDischargeCap()/100.0 << std::endl;
-    std::cout << "voltageIndex: #" << (unsigned) this->getVoltageIndex() << ", " << this->getVoltageIndexStr() << std::endl;
-    std::cout << "trickleState: #" <<            this->getTrickleState() << ", " << this->getTrickleStateStr() << std::endl;
-    std::cout << "maxCharge:    #" << (unsigned) this->getMaxCharge() << ", " << this->getMaxChargeStr() << std::endl;
-    std::cout << "progStatus:   #" << (unsigned) this->getProgramStatus() << ", " << this->getProgramStatusStr() << std::endl;
-    std::cout << "progStartNo:  " << this->getProgramStartCountStr() << std::endl;
-    std::cout << "pause:        "  << (unsigned) this->getPause() << std::endl;
-    std::cout << "capacity:     "  << (unsigned) this->getCapacity() << std::endl;
-    std::cout << "discharge:    #" << (unsigned) this->getDischarge() << ", " << this->getDischargeStr() << std::endl;
-    std::cout << "maxDischarge: #" << (unsigned) this->getMaxDischarge() << ", " << this->getMaxDischargeStr() << std::endl;
-    std::cout << "stepIndex:    #" << (unsigned) this->getStepIndex() << ", " << this->getStepIndexStr() << std::endl;
+    std::cout << "counter:      "  << getCounter()                      << std::endl;
+    std::cout << "slot:         "  << getSlotIdStr()                    << std::endl;
+    std::cout << "chemistry:    #" << (unsigned) getChemistry()         << ", " << getChemistryStr()     << std::endl;
+    std::cout << "runningState: #" << (unsigned) getRunningStateByte()  << ", " << getRunningStateStr()  << std::endl;
+    std::cout << "programState: #" << (unsigned) getProgramState()      << ", " << getProgramStateStr()  << std::endl;
+    std::cout << "program:      #" << (unsigned) getProgram()           << ", " << getProgramStr()       << std::endl;
+    std::cout << "step:         #" << (unsigned) getStep()              << ", " << getStepStr()          << std::endl;
+    std::cout << "minutes:      "  << getMinutes()                      << std::endl;
+    std::cout << "voltage:      "  << getVoltageStr()                   << std::endl;
+    std::cout << "current:      "  << getCurrentStr()                   << std::endl;
+    std::cout << "chargeCap:    "  << getChargeCapStr()                 << std::endl;
+    std::cout << "dischargeCap: "  << getDischargeCapStr()              << std::endl;
+    std::cout << "voltageIndex: #" << (unsigned) getVoltageIndex()      << ", " << getVoltageIndexStr()  << std::endl;
+    std::cout << "trickleState: #" << (unsigned) getTrickleStateByte()  << ", " << getTrickleStateStr()  << std::endl;
+    std::cout << "maxCharge:    #" << (unsigned) getMaxCharge()         << ", " << getMaxChargeStr()     << std::endl;
+    std::cout << "sdCardLog:    #" << (unsigned) getSdCardLog()         << ", " << getSdCardLogStr()     << std::endl;
+    std::cout << "proComleteNo: "  << getProgramCompletedCountStr()     << std::endl;
+    std::cout << "pause:        "  << (unsigned) getPause()             << std::endl;
+    std::cout << "capacity:     "  << (unsigned) getCapacity()          << std::endl;
+    std::cout << "discharge:    #" << (unsigned) getDischarge()         << ", " << getDischargeStr()     << std::endl;
+    std::cout << "maxDischarge: #" << (unsigned) getMaxDischarge()      << ", " << getMaxDischargeStr()  << std::endl;
+    std::cout << "stepIndex:    #" << (unsigned) getStepIndex()         << ", " << getStepIndexStr()     << std::endl;
 
-    std::cout << "crc:          " << std::hex << this->getCrc() << std::dec << std::endl;
+    std::cout << "crc:          " << std::hex << getCrc() << std::dec << std::endl;
     std::cout << std::endl;
 }
 
 void DatMessage::printSummary() const {
-    std::cout << this->getSlotIdStr() << ": " << this->getProgramStateStr() << ": " << this->getStepStr() << std::endl;
+    std::cout << getSlotIdStr() << ": " << getProgramStateStr() << ": " << getStepStr() << std::endl;
 }
 
 uint16_t DatMessage::getCounter() const {
@@ -155,26 +172,8 @@ void DatMessage::validateSlotId() const {
 
 std::string DatMessage::getSlotIdStr(const uint8_t slot_id) {
     switch(slot_id) {
-        case 0:
-            return "Slot 1";
-        case 1:
-            return "Slot 2";
-        case 2:
-            return "Slot 3";
-        case 3:
-            return "Slot 4";
-        case 4:
-            return "Slot 5";
-        case 5:
-            return "Slot 6";
-        case 6:
-            return "Slot 7";
-        case 7:
-            return "Slot 8";
-        case 8:
-            return "Slot A";
-        case 9:
-            return "Slot B";
+        case 0 ... 7: return std::string("Slot ") + (char) ('1' + slot_id);
+        case 8 ... 9: return std::string("Slot ") + (char) ('A' + slot_id - 8);
         default:
             std::cerr << "Invalid slot id: " << (unsigned) slot_id << std::endl;
             return ERR + "(" + std::to_string(slot_id) + ")";
@@ -183,6 +182,83 @@ std::string DatMessage::getSlotIdStr(const uint8_t slot_id) {
 
 std::string DatMessage::getSlotIdStr() const {
     return getSlotIdStr(getSlotId());
+}
+
+uint8_t DatMessage::getCellStackSize() const {
+    const uint8_t slot_id = getSlotId();
+    switch(slot_id) {
+        case 0 ... 7: return 1;
+        case 8 ... 9: return 7;
+        default:
+            std::cerr << "Invalid cell stack size for slot id: " << (unsigned) slot_id << std::endl;
+            return -1;
+    }
+}
+
+float DatMessage::getCurrentScale() const {
+    const uint8_t slot_id = getSlotId();
+    switch(slot_id) {
+        case 0 ... 7: return 0.001;  // in units of 0.001
+        case 8 ... 9: return 0.0001; // in units of 0.0001
+        default:
+            std::cerr << "Invalid current scale for slot id: " << (unsigned) slot_id << std::endl;
+            return -1.0;
+    }
+}
+
+uint8_t DatMessage::getCurrentPrecision() const {
+    const uint8_t slot_id = getSlotId();
+    switch(slot_id) {
+        case 0 ... 7: return 3; // in units of 0.001
+        case 8 ... 9: return 4; // in units of 0.0001
+        default:
+            std::cerr << "Invalid current precision for slot id: " << (unsigned) slot_id << std::endl;
+            return 1;
+    }
+}
+
+float DatMessage::getChargeCapScale() const {
+    const uint8_t slot_id = getSlotId();
+    switch(slot_id) {
+        case 0 ... 7: return 0.01;  // in units of 0.01
+        case 8 ... 9: return 0.001; // in units of 0.001
+        default:
+            std::cerr << "Invalid charge capacity scale for slot id: " << (unsigned) slot_id << std::endl;
+            return -1.0;
+    }
+}
+
+uint8_t DatMessage::getChargeCapPrecision() const {
+    const uint8_t slot_id = getSlotId();
+    switch(slot_id) {
+        case 0 ... 7: return 2; // in units of 0.01
+        case 8 ... 9: return 3; // in units of 0.001
+        default:
+            std::cerr << "Invalid charge capacity precision for slot id: " << (unsigned) slot_id << std::endl;
+            return 1;
+    }
+}
+
+float DatMessage::getDischargeCapScale() const {
+    const uint8_t slot_id = getSlotId();
+    switch(slot_id) {
+        case 0 ... 7: return 0.01;  // in units of 0.01
+        case 8 ... 9: return 0.001; // in units of 0.001
+        default:
+            std::cerr << "Invalid discharge capacity scale for slot id: " << (unsigned) slot_id << std::endl;
+            return -1.0;
+    }
+}
+
+uint8_t DatMessage::getDischargeCapPrecision() const {
+    const uint8_t slot_id = getSlotId();
+    switch(slot_id) {
+        case 0 ... 7: return 2; // in units of 0.01
+        case 8 ... 9: return 3; // in units of 0.001
+        default:
+            std::cerr << "Invalid discharge capacity precision for slot id: " << (unsigned) slot_id << std::endl;
+            return 1;
+    }
 }
 
 uint8_t DatMessage::getChemistry() const {
@@ -212,20 +288,24 @@ std::string DatMessage::getChemistryStr() const {
     const uint8_t chemistry = getChemistry();
     switch(chemistry) {
         case CHEMISTRY_EMPTY:
-            return "Empty";
+            return EMPTY;
         case CHEMISTRY_NIMH_CD:
-            return "NiMH/Cd";
+            return NIMH_CD;
         case CHEMISTRY_NIZN:
-            return "NiZn";
+            return NIZN;
         default:
             std::cerr << getSlotIdStr() << ", invalid chemistry: " << (unsigned) chemistry << std::endl;
             return ERR + "(" + std::to_string(chemistry) + ")";
     }
 }
 
-bool DatMessage::getRunningState() const {
-    const unsigned char running_state_byte = buffer[4];
-    switch(running_state_byte) {
+uint8_t DatMessage::getRunningStateByte() const {
+    return this->buffer[4];
+}
+
+bool DatMessage::getRunningStateBool() const {
+    const uint8_t running_state = getRunningStateByte();
+    switch(running_state) {
         case RUNNING_STATE_NOT_RUNNING:
             // Program not running
             return false;
@@ -233,20 +313,20 @@ bool DatMessage::getRunningState() const {
             // Program running
             return true;
         default:
-            std::cerr << getSlotIdStr() << ", invalid running state: " << (int) running_state_byte << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid running state: " << (unsigned) running_state << std::endl;
             return false;
     }
 }
 
 void DatMessage::validateRunningState() const {
-    const uint8_t running_state = getRunningState();
+    const uint8_t running_state = getRunningStateByte();
     if (running_state < VALIDATE_RUNNING_STATE_MIN || VALIDATE_RUNNING_STATE_MAX < running_state) {
         std::cerr << getSlotIdStr() << ", invalid running state: " << (unsigned) running_state << std::endl;
     }
 }
 
 std::string DatMessage::getRunningStateStr() const {
-    return getRunningState() ? "Program running" : "Program not running";
+    return getRunningStateBool() ? "Program running" : "Program not running";
 }
 
 uint8_t DatMessage::getProgramState() const {
@@ -318,7 +398,7 @@ bool DatMessage::isProgramError() const {
 std::string DatMessage::getProgramStr(const uint8_t program) const {
     switch(program) {
         case PROGRAM_STATE_EMPTY:
-            return "Empty";
+            return EMPTY;
         case PROGRAM_STATE_RECHARGE:
             return "Recharge";
         case PROGRAM_STATE_DISCHARGE:
@@ -451,7 +531,6 @@ std::string DatMessage::getVoltageStr() const {
     return out.str();
 }
 
-// in units of 0.001
 uint16_t DatMessage::getCurrent() const {
     uint16_t temp = 0;
     memcpy(&temp, &this->buffer[12], 2);
@@ -460,12 +539,11 @@ uint16_t DatMessage::getCurrent() const {
 
 std::string DatMessage::getCurrentStr() const {
     std::ostringstream out;
-    out.precision(3);
-    out << std::fixed << getCurrent() * 0.001;
+    out.precision(getCurrentPrecision());
+    out << std::fixed << getCurrent() * getCurrentScale();
     return out.str();
 }
 
-// in units of 0.01
 uint32_t DatMessage::getChargeCap() const {
     uint32_t temp = 0;
     memcpy(&temp, &this->buffer[14], 4);
@@ -474,12 +552,11 @@ uint32_t DatMessage::getChargeCap() const {
 
 std::string DatMessage::getChargeCapStr() const {
     std::ostringstream out;
-    out.precision(2);
-    out << std::fixed << getChargeCap() * 0.01;
+    out.precision(getChargeCapPrecision());
+    out << std::fixed << getChargeCap() * getChargeCapScale();
     return out.str();
 }
 
-// in units of 0.01
 uint32_t DatMessage::getDischargeCap() const {
     uint32_t temp = 0;
     memcpy(&temp, &this->buffer[18], 4);
@@ -488,8 +565,8 @@ uint32_t DatMessage::getDischargeCap() const {
 
 std::string DatMessage::getDischargeCapStr() const {
     std::ostringstream out;
-    out.precision(2);
-    out << std::fixed << getDischargeCap() * 0.01;
+    out.precision(getDischargeCapPrecision());
+    out << std::fixed << getDischargeCap() * getDischargeCapScale();
     return out.str();
 }
 
@@ -513,59 +590,40 @@ void DatMessage::validateVoltageIndex() const {
         return;
     }
     bool voltage_index_matches_voltage = false;
+    const uint8_t cell_stack_size = getCellStackSize();
     if (isStepDischarging() || isStepReadyDischarged()) {
         switch(voltage_index) {
             case 2: if (isProgramStateComplete() || isProgramStateTrickle()) {
                         return;
                     }
-            case 3: {   voltage_index_matches_voltage =    0 <= voltage && voltage <= 1250; // Lowest seen 0.318V
-                        break;
-                    }
-            case 4: {   voltage_index_matches_voltage = 1251 <= voltage && voltage <= 1270;
-                        break;
-                    }
-            case 5: {   voltage_index_matches_voltage = 1271 <= voltage && voltage <= 1285;
-                        break;
-                    }
-            case 6: {   voltage_index_matches_voltage = 1286 <= voltage && voltage <= 1300;
-                        break;
-                    }
-            case 7: {   voltage_index_matches_voltage = 1301 <= voltage && voltage <= 1510;  // Higest seen 1.492V
-                        break;
-                    }
+            case 3 ... 7: {
+                              voltage_index_matches_voltage =    getMinimumDischargeMilliVoltage(voltage_index, cell_stack_size) <= voltage  // NiMH, case 3: Lowest  seen 0.318V
+                                                              && voltage <= getMaximumDischargeMilliVoltage(voltage_index, cell_stack_size); // NiMH, case 7: Highest seen 1.522V
+                              break;
+            }
         }
         if (isProgramStateComplete() || isProgramStateTrickle()) {
-            std::cerr << getSlotIdStr() << ", voltage index should be 2 for discharging and a finished program, index: " << (int) voltage_index << ": " << getVoltageIndexStr() << ", voltage: " << getVoltageStr() << std::endl;
+            std::cerr << getSlotIdStr() << ", voltage index should be 2 for discharging and a finished program, index: " << (unsigned) voltage_index << ": " << getVoltageIndexStr() << ", voltage: " << getVoltageStr() << std::endl;
         }
         if (!voltage_index_matches_voltage) {
-            std::cerr << getSlotIdStr() << ", invalid voltage discharge index: " << (int) voltage_index << ": " << getVoltageIndexStr() << ", voltage: " << getVoltageStr() << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid discharge voltage index: " << (unsigned) voltage_index << ": " << getVoltageIndexStr() << ", voltage: " << getVoltageStr() << std::endl;
         }
     } else {
         switch(voltage_index) {
-            case 2: {   voltage_index_matches_voltage =    0 <= voltage && voltage <= 1375;  // Lowest seen 0.006V
-                        break;
-                    }
-            case 3: {   voltage_index_matches_voltage = 1376 <= voltage && voltage <= 1390;
-                        break;
-                    }
-            case 4: {   voltage_index_matches_voltage = 1391 <= voltage && voltage <= 1405;
-                        break;
-                    }
-            case 5: {   voltage_index_matches_voltage = 1406 <= voltage && voltage <= 1420;
-                        break;
-                    }
-            case 6: {   voltage_index_matches_voltage = 1421 <= voltage && voltage <= 1510;  // Higest seen 1.501V
-                        break;
-                    }
+            case 2 ... 6: {
+                              voltage_index_matches_voltage =    getMinimumChargeMilliVoltage(voltage_index, cell_stack_size) <= voltage  // NiMH, case 2: Lowest  seen 0.006V
+                                                              && voltage <= getMaximumChargeMilliVoltage(voltage_index, cell_stack_size); // NiMH, case 6: Highest seen 1.523V
+                              break;
+            }
             case 7: if (isProgramStateComplete() || isProgramStateTrickle()) {
                         return;
-                    }
+            }
         }
         if (isProgramStateComplete() || isProgramStateTrickle()) {
-            std::cerr << getSlotIdStr() << ", voltage index should be 7 for charging and a finished program, index: " << (int) voltage_index << ": " << getVoltageIndexStr() << ", voltage: " << getVoltageStr() << std::endl;
+            std::cerr << getSlotIdStr() << ", voltage index should be 7 for charging and a finished program, index: " << (unsigned) voltage_index << ": " << getVoltageIndexStr() << ", voltage: " << getVoltageStr() << std::endl;
         }
         if (!voltage_index_matches_voltage) {
-            std::cerr << getSlotIdStr() << ", invalid voltage charge index: " << (int) voltage_index << ": " << getVoltageIndexStr() << ", voltage: " << getVoltageStr() << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid charge voltage index: " << (unsigned) voltage_index << ": " << getVoltageIndexStr() << ", voltage: " << getVoltageStr() << std::endl;
         }
     }
 }
@@ -583,42 +641,131 @@ std::string DatMessage::getVoltageIndexStr() const {
         return getProgramStateStr();
     }
     if (isProgramStateMaximize() && isStepCoolDown()) {
-        return "Cool-down";
+        return getStepStr();
     }
+    const uint8_t cell_stack_size = getCellStackSize();
     if (isStepDischarging() || isStepReadyDischarged()) {
         switch(voltage_index) {
             case 2: if (isProgramStateComplete() || isProgramStateTrickle()) {
                         return "DFinished";
                     }
-            case 3: return "D[0.000, 1.250]"; // Lowest seen 0.318V
-            case 4: return "D[1.251, 1.270]";
-            case 5: return "D[1.271, 1.285]";
-            case 6: return "D[1.286, 1.300]";
-            case 7: return "D[1.301, 1.510]";  // Higest seen 1.492V
+            case 3 ... 7: return getMilliVoltIntervalString('D', getMinimumDischargeMilliVoltage(voltage_index, cell_stack_size),  // NiMH, case 3: Lowest  seen 0.318V
+                                                                 getMaximumDischargeMilliVoltage(voltage_index, cell_stack_size)); // NiMH, case 7: Highest seen 1.522V
             default:
-                std::cerr << getSlotIdStr() << ", invalid voltage discharge index: " << (int) voltage_index << std::endl;
+                std::cerr << getSlotIdStr() << ", invalid discharge voltage index: " << (unsigned) voltage_index << std::endl;
                 return ERR + "(D" + std::to_string(voltage_index) + ")";
         }
     } else {
         switch(voltage_index) {
-            case 2: return "C[0.000, 1.375]";  // Lowest seen 0.006V
-            case 3: return "C[1.376, 1.390]";
-            case 4: return "C[1.391, 1.405]";
-            case 5: return "C[1.406, 1.420]";
-            case 6: return "C[1.421, 1.510]";  // Higest seen 1.501V
+            case 2 ... 6: return getMilliVoltIntervalString('C', getMinimumChargeMilliVoltage(voltage_index, cell_stack_size),  // NiMH, case 2: Lowest  seen 0.006V
+                                                                 getMaximumChargeMilliVoltage(voltage_index, cell_stack_size)); // NiMH, case 6: Highest seen 1.523V
             case 7: if (isProgramStateComplete() || isProgramStateTrickle()) {
                         return "CFinished";
                     }
             default:
-                std::cerr << getSlotIdStr() << ", invalid voltage charge index: " << (int) voltage_index << std::endl;
+                std::cerr << getSlotIdStr() << ", invalid charge voltage index: " << (unsigned) voltage_index << std::endl;
                 return ERR + "(C" + std::to_string(voltage_index) + ")";
         }
     }
 }
 
-bool DatMessage::getTrickleState() const {
-    const unsigned char trickle_state_byte = buffer[23];
-    switch(trickle_state_byte) {
+uint16_t DatMessage::getMinimumTypeMilliVoltage(const std::string info, const int16_t type_voltage_index_mv[], const size_t type_voltage_index_mv_sizeof, const uint8_t minimum_voltage_index, const uint8_t voltage_index, const uint8_t cell_stack_size) const {
+    const uint8_t type_voltage_index_mv_size = type_voltage_index_mv_sizeof / sizeof(int16_t);
+    if (voltage_index < minimum_voltage_index || type_voltage_index_mv_size - 1 < voltage_index) {
+        std::cerr << getSlotIdStr() << ", invalid " + info + " minimum voltage index: " << (unsigned) voltage_index << ", should be from [" << (unsigned) minimum_voltage_index << ", " << (unsigned) (type_voltage_index_mv_size - 1) << "]" << std::endl;
+        return -1;
+    }
+    const int16_t minimum_type_voltage_mv = type_voltage_index_mv[voltage_index - 1];
+    if (minimum_type_voltage_mv < 0) {
+        std::cerr << getSlotIdStr() << ", invalid " + info + " minimum voltage value: " << (unsigned) minimum_type_voltage_mv << " for voltage index: " << (unsigned) voltage_index << std::endl;
+        return -1;
+    }
+    if (minimum_type_voltage_mv == 0) {
+        return 0;
+    }
+    return cell_stack_size * minimum_type_voltage_mv + 1;
+}
+
+uint16_t DatMessage::getMaximumTypeMilliVoltage(const std::string info, const int16_t type_voltage_index_mv[], const size_t type_voltage_index_mv_sizeof, const uint8_t minimum_voltage_index, const uint8_t voltage_index, const uint8_t cell_stack_size) const {
+    const uint8_t type_voltage_index_mv_size = type_voltage_index_mv_sizeof / sizeof(int16_t);
+    if (voltage_index < minimum_voltage_index || type_voltage_index_mv_size - 1 < voltage_index) {
+        std::cerr << getSlotIdStr() << ", invalid " + info + " maximum voltage index: " << (unsigned) voltage_index << ", should be from [" << (unsigned) minimum_voltage_index << ", " << (unsigned) (type_voltage_index_mv_size - 1) << "]" << std::endl;
+    }
+    const int16_t maximum_type_voltage_mv = type_voltage_index_mv[voltage_index];
+    if (maximum_type_voltage_mv < 0) {
+        std::cerr << getSlotIdStr() << ", invalid " + info + " maximum voltage value: " << (unsigned) maximum_type_voltage_mv << " for voltage index: " << (unsigned) voltage_index << std::endl;
+        return -1;
+    }
+    return cell_stack_size * maximum_type_voltage_mv;
+}
+
+uint16_t DatMessage::getMinimumChargeMilliVoltage(const uint8_t voltage_index, const uint8_t cell_stack_size) const {
+    if (isChemistryNimhCd()) {
+        return getMinimumTypeMilliVoltage(NIMH_CD + " charge", NIMH_CD_CHARGE_VOLTAGE_INDEX_MV, sizeof(NIMH_CD_CHARGE_VOLTAGE_INDEX_MV), NIMH_CD_CHARGE_VOLTAGE_INDEX_MV_MIN, voltage_index, cell_stack_size);
+    } else if (isChemistryNizn()) {
+        return getMinimumTypeMilliVoltage(NIZN + " charge", NIZN_CHARGE_VOLTAGE_INDEX_MV, sizeof(NIZN_CHARGE_VOLTAGE_INDEX_MV), NIZN_CHARGE_VOLTAGE_INDEX_MV_MIN, voltage_index, cell_stack_size);
+    } else {
+        const uint8_t chemistry = getChemistry();
+        std::cerr << getSlotIdStr() << ", invalid chemistry: " << (unsigned) chemistry << " for minimum charge mv" << std::endl;
+        return 0;
+    }
+}
+
+uint16_t DatMessage::getMaximumChargeMilliVoltage(const uint8_t voltage_index, const uint8_t cell_stack_size) const {
+    if (isChemistryNimhCd()) {
+        return getMaximumTypeMilliVoltage(NIMH_CD + " charge", NIMH_CD_CHARGE_VOLTAGE_INDEX_MV, sizeof(NIMH_CD_CHARGE_VOLTAGE_INDEX_MV), NIMH_CD_CHARGE_VOLTAGE_INDEX_MV_MIN, voltage_index, cell_stack_size);
+    } else if (isChemistryNizn()) {
+        return getMaximumTypeMilliVoltage(NIZN + " charge", NIZN_CHARGE_VOLTAGE_INDEX_MV, sizeof(NIZN_CHARGE_VOLTAGE_INDEX_MV), NIZN_CHARGE_VOLTAGE_INDEX_MV_MIN, voltage_index, cell_stack_size);
+    } else {
+        const uint8_t chemistry = getChemistry();
+        std::cerr << getSlotIdStr() << ", invalid chemistry: " << (unsigned) chemistry << " for maximum charge mv" << std::endl;
+        return 0;
+    }
+}
+
+uint16_t DatMessage::getMinimumDischargeMilliVoltage(const uint8_t voltage_index, const uint8_t cell_stack_size) const {
+    if (isChemistryNimhCd()) {
+        return getMinimumTypeMilliVoltage(NIMH_CD + " discharge", NIMH_CD_DISCHARGE_VOLTAGE_INDEX_MV, sizeof(NIMH_CD_DISCHARGE_VOLTAGE_INDEX_MV), NIMH_CD_DISCHARGE_VOLTAGE_INDEX_MV_MIN, voltage_index, cell_stack_size);
+    } else if (isChemistryNizn()) {
+        return getMinimumTypeMilliVoltage(NIZN + " discharge", NIZN_DISCHARGE_VOLTAGE_INDEX_MV, sizeof(NIZN_DISCHARGE_VOLTAGE_INDEX_MV), NIZN_DISCHARGE_VOLTAGE_INDEX_MV_MIN, voltage_index, cell_stack_size);
+    } else {
+        const uint8_t chemistry = getChemistry();
+        std::cerr << getSlotIdStr() << ", invalid chemistry: " << (unsigned) chemistry << " for minimum discharge mv" << std::endl;
+        return 0;
+    }
+}
+
+uint16_t DatMessage::getMaximumDischargeMilliVoltage(const uint8_t voltage_index, const uint8_t cell_stack_size) const {
+    if (isChemistryNimhCd()) {
+        return getMaximumTypeMilliVoltage(NIMH_CD + " discharge", NIMH_CD_DISCHARGE_VOLTAGE_INDEX_MV, sizeof(NIMH_CD_DISCHARGE_VOLTAGE_INDEX_MV), NIMH_CD_DISCHARGE_VOLTAGE_INDEX_MV_MIN, voltage_index, cell_stack_size);
+    } else if (isChemistryNizn()) {
+        return getMaximumTypeMilliVoltage(NIZN + " discharge", NIZN_DISCHARGE_VOLTAGE_INDEX_MV, sizeof(NIZN_DISCHARGE_VOLTAGE_INDEX_MV), NIZN_DISCHARGE_VOLTAGE_INDEX_MV_MIN, voltage_index, cell_stack_size);
+    } else {
+        const uint8_t chemistry = getChemistry();
+        std::cerr << getSlotIdStr() << ", invalid chemistry: " << (unsigned) chemistry << " for maximum discharge mv" << std::endl;
+        return 0;
+    }
+}
+
+std::string DatMessage::getMilliVoltIntervalString(const char interval_type, const uint16_t minimum_millivolt, const uint16_t maximum_millivolt) const {
+    std::ostringstream out;
+    out << interval_type;
+    out << '[';
+    out.precision(3);
+    out << std::fixed << minimum_millivolt * 0.001;
+    out << ", ";
+    out << std::fixed << maximum_millivolt * 0.001;
+    out << ']';
+    return out.str();
+}
+
+uint8_t DatMessage::getTrickleStateByte() const {
+    return this->buffer[23];
+}
+
+bool DatMessage::getTrickleStateBool() const {
+    const unsigned char trickle_state = getTrickleStateByte();
+    switch(trickle_state) {
         case TRICKLE_STATE_NOT_RUNNING:
             // Trickle not running
             return false;
@@ -626,23 +773,23 @@ bool DatMessage::getTrickleState() const {
             // Trickle running
             return true;
         default:
-            std::cerr << getSlotIdStr() << ", invalid trickle state: " << (int) trickle_state_byte << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid trickle state: " << (unsigned) trickle_state << std::endl;
             return false;
     }
 }
 
 void DatMessage::validateTrickleState() const {
-    const uint8_t trickle_state = getTrickleState();
+    const uint8_t trickle_state = getTrickleStateByte();
     if (trickle_state < VALIDATE_TRICKLE_STATE_MIN || VALIDATE_TRICKLE_STATE_MAX < trickle_state) {
         std::cerr << getSlotIdStr() << ", invalid trickle state: " << (unsigned) trickle_state << std::endl;
     }
-    if (getTrickleState() != isProgramStateTrickle()) {
+    if (getTrickleStateBool() != isProgramStateTrickle()) {
         std::cerr << getSlotIdStr() << ", trickle state: " << getTrickleStateStr() << ", should match program state trickle, is: " << getProgramStateStr() << std::endl;
     }
 }
 
 std::string DatMessage::getTrickleStateStr() const {
-    return getTrickleState() ? "Trickle running" : "Trickle not running";
+    return getTrickleStateBool() ? "Trickle running" : "Trickle not running";
 }
 
 uint8_t DatMessage::getMaxCharge() const {
@@ -659,83 +806,67 @@ void DatMessage::validateMaxCharge() const {
 std::string DatMessage::getMaxChargeStr() const {
     const uint8_t max_charge = getMaxCharge();
     switch(max_charge) {
-        case MAX_CHARGE_AUTO: return "Auto";
-        case 1: return "500mA";
-        case 2: return "1000mA";
-        case 3: return "1500mA";
-        case 4: return "2000mA";
-        case 5: return "2500mA";
-        case MAX_CHARGE_3000MA: return "3000mA";
+        case MAX_CHARGE_AUTO: return AUTO;
+        case 1 ... MAX_CHARGE_3000MA : return std::to_string(max_charge * 500) + "mA";
         default:
-            std::cerr << getSlotIdStr() << ", invalid max charge: " << (int) max_charge << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid max charge: " << (unsigned) max_charge << std::endl;
             return ERR + "(" + std::to_string(max_charge) + ")";
     }
 }
 
-uint8_t DatMessage::getProgramStatus() const {
+uint8_t DatMessage::getSdCardLog() const {
     return this->buffer[25];
 }
 
-void DatMessage::validateProgramStatus() const {
-    const uint8_t program_status = getProgramStatus();
-    if (program_status < VALIDATE_PROGRAM_STATUS_MIN || VALIDATE_PROGRAM_STATUS_MAX < program_status || 3 == program_status) {
-        std::cerr << getSlotIdStr() << ", invalid program status: " << (unsigned) program_status << std::endl;
+void DatMessage::validateSdCardLog() const {
+    const uint8_t sd_card_log = getSdCardLog();
+    if (sd_card_log < VALIDATE_SD_CARD_LOG_MIN || VALIDATE_SD_CARD_LOG_MAX < sd_card_log || 3 == sd_card_log) {
+        std::cerr << getSlotIdStr() << ", invalid sd card log: " << (unsigned) sd_card_log << std::endl;
     }
-    if (isProgramStatusEmpty()) {
-        if (getRunningState()) {
-            std::cerr << getSlotIdStr() << ", invalid, program status: " << (unsigned) program_status << ", running state is running" << std::endl;
-        }
-        if (!isProgramStateEmpty() && !isProgramStateNoSetup()) {
-            std::cerr << getSlotIdStr() << ", invalid, program status: " << (unsigned) program_status << ", program state: " << getProgramStateStr() << std::endl;
-        }
-        if (!isStepIdle()) {
-            std::cerr << getSlotIdStr() << ", invalid, program status: " << (unsigned) program_status << ", step: " << getStepStr() << std::endl;
-        }
-    }
-    if (isProgramStatusComplete()) {
+    if (isSdCardLogComplete()) {
         if (isProgramStateError() && isProgramError() && isStepError()) {
             return;
         }
-        if (getRunningState() && isProgramStateComplete() || !getRunningState() && isProgramStateTrickle()) {
-            std::cerr << getSlotIdStr() << ", invalid, program status: " << (unsigned) program_status << ", running state: " << getRunningStateStr() << ", program state: " << getProgramStateStr() << std::endl;
+        if (getRunningStateBool() && isProgramStateComplete() || !getRunningStateBool() && isProgramStateTrickle()) {
+            std::cerr << getSlotIdStr() << ", invalid, sd card log: " << (unsigned) sd_card_log << ", running state: " << getRunningStateStr() << ", program state: " << getProgramStateStr() << std::endl;
         }
         if (!isProgramStateComplete() && !isProgramStateTrickle()) {
-            std::cerr << getSlotIdStr() << ", invalid, program status: " << (unsigned) program_status << ", program state: " << getProgramStateStr() << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid, sd card log: " << (unsigned) sd_card_log << ", program state: " << getProgramStateStr() << std::endl;
         }
         if (!isStepReadyCharged() && !isStepReadyDischarged()) {
-            std::cerr << getSlotIdStr() << ", invalid, program status: " << (unsigned) program_status << ", step: " << getStepStr() << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid, sd card log: " << (unsigned) sd_card_log << ", step: " << getStepStr() << std::endl;
         }
     }
 }
 
-bool DatMessage::isProgramStatusEmpty() const {
-    return getProgramStatus() == PROGRAM_STATUS_EMPTY;
+bool DatMessage::isSdCardLogNone() const {
+    return getSdCardLog() == SD_CARD_LOG_NONE;
 }
 
-bool DatMessage::isProgramStatusComplete() const {
-    return getProgramStatus() == PROGRAM_STATUS_COMPLETE;
+bool DatMessage::isSdCardLogComplete() const {
+    return getSdCardLog() == SD_CARD_LOG_COMPLETE;
 }
 
-std::string DatMessage::getProgramStatusStr() const {
-    const uint8_t program_status = getProgramStatus();
-    switch(program_status) {
-        case PROGRAM_STATUS_EMPTY: return "Empty";
-        case 1: return "Running";
-        case 2: return "Determinating";
-        case PROGRAM_STATUS_COMPLETE: return "Finished";
+std::string DatMessage::getSdCardLogStr() const {
+    const uint8_t sd_card_log = getSdCardLog();
+    switch(sd_card_log) {
+        case SD_CARD_LOG_NONE: return "SD Log None";
+        case 1: return "SD Log Running";
+        case 2: return "SD Log Create";
+        case SD_CARD_LOG_COMPLETE: return "SD Log Finished";
         default:
-            std::cerr << getSlotIdStr() << ", invalid program status: " << (int) program_status << std::endl;
-            return ERR + "(" + std::to_string(program_status) + ")";
+            std::cerr << getSlotIdStr() << ", invalid sd card log: " << (unsigned) sd_card_log << std::endl;
+            return ERR + "(" + std::to_string(sd_card_log) + ")";
     }
 }
 
-uint8_t DatMessage::getProgramStartCount() const {
+uint8_t DatMessage::getProgramCompletedCount() const {
     return this->buffer[26];
 }
 
-std::string DatMessage::getProgramStartCountStr() const {
-    const int8_t program_start_count = getProgramStartCount();
-    return std::to_string(program_start_count);
+std::string DatMessage::getProgramCompletedCountStr() const {
+    const int8_t program_complete_count = getProgramCompletedCount();
+    return std::to_string(program_complete_count);
 }
 
 uint8_t DatMessage::getPause() const {
@@ -755,60 +886,70 @@ uint8_t DatMessage::getDischarge() const {
 void DatMessage::validateDischarge(const std::string info, const uint8_t discharge) const {
     if (isChemistryNimhCd()) {
         if (discharge < VALIDATE_DISCHARGE_MIN || VALIDATE_DISCHARGE_CHEMISTRY_NIMH_CD_MAX < discharge) {
-            std::cerr << getSlotIdStr() << ", invalid " + info + "discharge: " << (unsigned) discharge << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid " + NIMH_CD + " " + info + "discharge: " << (unsigned) discharge << std::endl;
         }
     }
     if (isChemistryNizn()) {
         if (discharge < VALIDATE_DISCHARGE_MIN || VALIDATE_DISCHARGE_CHEMISTRY_NIZN_MAX < discharge) {
-            std::cerr << getSlotIdStr() << ", invalid " + info + "discharge: " << (unsigned) discharge << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid " + NIZN + " " + info + "discharge: " << (unsigned) discharge << std::endl;
         }
     }
 }
 
 void DatMessage::validateDischarge() const {
-    validateDischarge("", getDischarge());
+    const uint8_t discharge = getDischarge();
+    validateDischarge("", discharge);
+    if (isStepIdle()) {
+        const uint8_t expected_discharge = 0;
+        if (discharge != expected_discharge) {
+            std::cerr << getSlotIdStr() << ", invalid discharge: " << (unsigned) discharge << ". While idle, discharge: " << (unsigned) expected_discharge << " is expected, minutes: " << getMinutes() << std::endl;
+        }
+    }
+    if (isStepReadyDischarged()) {
+        const uint8_t expected_discharge = getSlotId() < 8 ? 1 : 0;
+        if (discharge != expected_discharge) {
+            std::cerr << getSlotIdStr() << ", invalid discharge: " << (unsigned) discharge << ". While ready-discharged, discharge: " << (unsigned) expected_discharge << " is expected, minutes: " << getMinutes() << std::endl;
+        }
+    }
+    if (isStepDischarging()) {
+        const uint8_t max_discharge = getMaxDischarge();
+        if (discharge != max_discharge) {
+            std::cerr << getSlotIdStr() << ", invalid discharge: " << (unsigned) discharge << ". While discharging max discharge: " << (unsigned) max_discharge << " is expected, minutes: " << getMinutes() << std::endl;
+        }
+    }
 }
 
-std::string DatMessage::getDischargeStr(const uint8_t chemistry, const uint8_t discharge) const {
+std::string DatMessage::getDischargeStr(const std::string info, const uint8_t discharge) const {
     if (isChemistryEmpty()) {
-        return "Empty";
+        return EMPTY;
     }
     if (isChemistryNimhCd()) {
         // NiMH/Cd
-        const uint8_t max_discharge = discharge;
         switch(discharge) {
-            case 1: return "125mA";
-            case 2: return "250mA";
-            case 3: return "375mA";
-            case 4: return "500mA";
-            case 5: return "625mA";
-            case 6: return "750mA";
+            case 0: return AUTO;
+            case 1 ... 6 : return std::to_string(discharge * 125) + "mA";
             default:
-                std::cerr << getSlotIdStr() << ", invalid NiMH/CD max discharge: " << (int) max_discharge << std::endl;
-                return ERR + "(NiMH/CD" + std::to_string(discharge) + ")";
+                std::cerr << getSlotIdStr() << ", invalid " + NIMH_CD + " " + info + "discharge: " << (unsigned) discharge << std::endl;
+                return ERR + "(" + NIMH_CD + std::to_string(discharge) + ")";
         }
     }
     if (isChemistryNizn()) {
         // NiZn
-        const uint8_t discharge = discharge;
         switch(discharge) {
-            case 1: return "150mA";
-            case 2: return "300mA";
-            case 3: return "450mA";
-            case 4: return "600mA";
+            case 1 ... 4 : return std::to_string(discharge * 150) + "mA";
             default:
-                std::cerr << getSlotIdStr() << ", invalid NiZn discharge: " << (int) discharge << std::endl;
-                return ERR + "(NiZn" + std::to_string(discharge) + ")";
+                std::cerr << getSlotIdStr() << ", invalid " + NIZN + " " + info + "discharge: " << (unsigned) discharge << std::endl;
+                return ERR + "(" + NIZN + std::to_string(discharge) + ")";
         }
     }
-    std::cerr << getSlotIdStr() << ", invalid chemistry: " << (int) chemistry << std::endl;
+    const uint8_t chemistry = getChemistry();
+    std::cerr << getSlotIdStr() << ", invalid chemistry: " << (unsigned) chemistry << std::endl;
     return ERR + "(" + std::to_string(chemistry) + "," + std::to_string(discharge) + ")";
 }
 
 std::string DatMessage::getDischargeStr() const {
-    const uint8_t chemistry = getChemistry();
     const uint8_t discharge = getDischarge();
-    return getDischargeStr(chemistry, discharge);
+    return getDischargeStr("", discharge);
 }
 
 uint8_t DatMessage::getMaxDischarge() const {
@@ -816,13 +957,12 @@ uint8_t DatMessage::getMaxDischarge() const {
 }
 
 void DatMessage::validateMaxDischarge() const {
-    validateDischarge("max ", getMaxDischarge());
+    validateDischarge("maximum ", getMaxDischarge());
 }
 
 std::string DatMessage::getMaxDischargeStr() const {
-    const uint8_t chemistry = getChemistry();
     const uint8_t max_discharge = getMaxDischarge();
-    return getDischargeStr(chemistry, max_discharge);
+    return getDischargeStr("maximum ", max_discharge);
 }
 
 uint8_t DatMessage::getStepIndex() const {

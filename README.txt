@@ -73,15 +73,16 @@ https://github.com/KuleRucket/cm2024/wiki#dat-message
 DAT Message:
 Offset 05: Program Running. Not-Running(0), Running(1). Or Charging/Discharging active/not active. At least related: When pressing "START PROGRAM" it will be Not-Running(0) for the first minute then afterwards it will be Running(1)
 Offset 23: Voltage Index.
+             NiMH/CD, 1-cell, 1,5V
                Error Slot: 0x09.
                Empty Slot: 0x20.
                Else, seen values from 0x02 to 0x07.
                When charging, the voltage index relates to the voltage as follows:
-                   0.000V  <= 0x02 <= 1.375V
-                   1.376V  <= 0x03 <= 1.390V
-                   1.391V  <= 0x04 <= 1.405V
-                   1.406V  <= 0x05 <= 1.420V
-                   1.421V  <= 0x06 <= 1.510V
+                   0.000V  <= 0x02 <=  1.375V
+                   1.376V  <= 0x03 <=  1.390V
+                   1.391V  <= 0x04 <=  1.405V
+                   1.406V  <= 0x05 <=  1.420V
+                   1.421V  <= 0x06 <=  1.530V
                    0x07: Finished
                When discharging, the voltage index relates to the voltage as follows:
                    0x02: Finished
@@ -89,14 +90,20 @@ Offset 23: Voltage Index.
                    1.251V  <= 0x04 <=  1.270V
                    1.271V  <= 0x05 <=  1.285V
                    1.286V  <= 0x06 <=  1.300V
-                   1.301V  <= 0x07 <=  1.510V
+                   1.301V  <= 0x07 <=  1.530V
+             NiMH/CD, 7-cells, 9V
+               Upper interval border is multiplied by 7.
+               Example: charging:    9.731V  <= 0x04 <=  9.835V
+               Example: discharging: 8.751V  <= 0x04 <=  8.890V
+             TODO: NiZn
+
 Offset 24: Trickle State. Not-Trickle(0), Trickle(1). Matches Program-state (offset 6) with value Trickle(8).
-Offset 26: Slot Status.
-                  0x00: Empty Slot.
-                  0x01: Program running.
-                  0x02: Determinating. Program just started within 5 seconds.
-                  0x04: Program finished
-offset 27: Number of "START PROGRAM" for the slot since power up. The number increments on every "START PROGRAM". Counting starts from 0.
+Offset 26: SD Card Log Status.
+                  0x00: SD Log none.
+                  0x01: SD Log running.
+                  0x02: SD Log create. Program just started within 5 seconds.
+                  0x04: SD Log finished.
+offset 27: Number of completed programs for the slot since power up. The number increments on every "Ready" for a program. Counting starts from 0.
 Offset 32: Maximum Discharge Rate as specified at "START PROGRAM" (see discharge rate table). Offset 31 is the Actual Discharge Rate
 Offset 33: Step Index. The "Charge" program has one step. The "Cycle" program has three steps. The step index is the index of the steps of the program.
            When the program is complete the step index is "max". That is when the "Cycle" program has finished the 3 steps then the step index is 3 (but 4 values: 0-3).

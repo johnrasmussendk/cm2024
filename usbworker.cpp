@@ -11,12 +11,12 @@
 
 
 UsbWorker::UsbWorker(const char* file_name, const bool dump_output, const char format, QObject *parent)
-    :   QThread(parent),
-        file_name(file_name),
-        dump_output(dump_output),
-        format(format) {
+    : QThread(parent),
+      file_name(file_name),
+      dump_output(dump_output),
+      format(format) {
     dump_output_disabled = false;
-    if (('1' <= this->format && this->format <= '8') && ('A' <= this->format && this->format <= 'B')) {
+    if (('1' <= this->format && this->format <= '8') || ('A' <= this->format && this->format <= 'B')) {
         std::cout << "Minutes Step mV mA C-cap/mAh D-cap/mAh" << std::endl;
     }
 }

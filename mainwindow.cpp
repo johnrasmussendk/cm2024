@@ -12,8 +12,8 @@ MainWindow::MainWindow(const bool dump_output, const char format, QWidget *paren
     QMainWindow(parent), ui(new Ui::MainWindow) {
 
     this->usbWorker = new UsbWorker(nullptr, dump_output, format, this);
-    lcd_brightness = 0;             // Default, do not change on init
-    charge_limit_percentage = -1;   // Default, do not change on init
+    lcd_brightness = 0;           // Default, do not change on init
+    charge_limit_percentage = -1; // Default, do not change on init
     slotToCancel = -1;
     for (int slotId=0; slotId<10; slotId++) {
         remaining_time_for_slot_running[slotId] = false;
@@ -58,8 +58,8 @@ void MainWindow::updateDatState(const DatMessage &msg) {
     // Label
     const bool msgIsProgramStateCycle = msg.isProgramStateCycle();
     // Program State
-    const std::string running_string = msg.getRunningState() ? "+" : "-";
-    const std::string program_state_string = msg.isProgramStateEmpty() ? ("#" + msg.getProgramStartCountStr()) : (running_string + msg.getProgramStateStr());
+    const std::string running_string = msg.getRunningStateBool() ? "+" : "-";
+    const std::string program_state_string = msg.isProgramStateEmpty() ? ("#" + msg.getProgramCompletedCountStr()) : (running_string + msg.getProgramStateStr());
     const QString program_state_q_string = QString::fromStdString(program_state_string);
     // Step
     std::string step_index_string = "";
@@ -414,7 +414,7 @@ std::string MainWindow::updateAndGetRemainingTimeStringForSlot(const DatMessage 
                     // The current has changed significant
                     if (current_has_changed_significant) {
                         // The current has changed significant to the last current value
-                        // The current start values for time stamp and charge_cap are no longer valid as the current has changed to much.
+                        // The current start values for time stamp and charge_cap are no longer valid as the current has changed too much.
                         // Reinitialise start values for time stamp and charge_cap.
                         // The start value for time stamp is ONE minute ago to match the start value for charge_cap.
                         remaining_time_for_slot_time_start[slotId] = time_now - std::chrono::minutes(1);
