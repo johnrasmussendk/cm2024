@@ -39,7 +39,7 @@ private:
     QMutex mutex;
     bool connect = false;
     void initPort();
-    int readMessage();
+    int readMessage(const bool read_until_new_line);
     void dumpRawDate(const int length);
     SupMessage getSupMessage(const int length);
     DatMessage getDatMessage(const int length);

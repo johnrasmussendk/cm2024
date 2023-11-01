@@ -43,7 +43,7 @@ void UsbWorker::readFile() {
     // The first data might not be from the beginning of a message.
     bool first_data = true;
     int length;
-    while (0 < (length = readMessage())) {
+    while (0 < (length = readMessage(first_data))) {
         if (strncmp(buf,"CM2024 SUP", 10) == 0) {
             const SupMessage supMessage = getSupMessage(length);
         } else if (strncmp(buf,"CM2024 DAT", 10)==0) {
@@ -86,7 +86,7 @@ void UsbWorker::run() {
             if (fd != -1) {
                 emit sendConnected(true);
 
-                int length = readMessage();
+                int length = readMessage(first_data);
                 if (strncmp(this->buf,"CM2024 SUP", 10) == 0) {
                     const SupMessage supMessage = getSupMessage(length);
                     emit sendSup(supMessage);
@@ -157,7 +157,7 @@ void UsbWorker::initPort() {
     }
 }
 
-int UsbWorker::readMessage() {
+int UsbWorker::readMessage(const bool read_until_new_line) {
 
     unsigned char ch = 0;
     unsigned char prevch = 0;
@@ -174,7 +174,16 @@ int UsbWorker::readMessage() {
         if (this->file_name != nullptr && length == 0) {
             break;
         }
-    } while ((prevch!='\r' || ch!='\n') && length<=47);
+        // Good: This solution does not reject valid messages if the crc (offset 33-34) contains a new line.
+        // Bad:  This solution does not resynchronize on a new line if data bytes are missing.
+        // Option 1: Remove " || !read_until_new_line" if resynchronization of a new line is needed.
+        // Option 2: Resynchronization on "CM2024 ". This string is less likely to be seen in the data than a new line is.
+        // Bytes for "a new line" crc: 00 00 04 01 01 04 04 02 e4 00 ed 04 e8 00 e8 d1 00 00 2e e8 00 00 04 00 06 00 00 3c 00 00 02 02 01 0d 0a 0d 0a
+        //                                   |--                    crc - part                                                        --|
+        // Bytes description: counter: 0; slot: Slot 5; chemistry: #1, NiMH/CD; runningState: #1, Program running; programState: #4, Cycle; program: #4, Cycle; step: #2, Discharging;
+        //                    minutes: 228; voltage: 1.261; current: 0.232; chargeCap: 537.36; dischargeCap: 594.38; voltageIndex: #4, D[1.251, 1.270]; trickleState: #0, Trickle not running;
+        //                    maxCharge: #6, 3000mA; sdCardLog: #0, SD Log None; proComleteNo: 0; pause: 60; capacity: 0; discharge: #2, 250mA; maxDischarge: #2, 250mA; stepIndex: #1, 2; crc: d0a;
+    } while ((prevch!='\r' || ch!='\n' || !read_until_new_line) && length<47);
     dumpRawDate(length);
     return length;
 }
@@ -191,7 +200,7 @@ void UsbWorker::dumpRawDate(const int length) {
         if (this->fd_dump_output != -1) {
             const int n = write(this->fd_dump_output, buf, length);
             if (n != length) {
-                std::cerr << "Cannot write buffer. Wrote: " << n << ", length: " + length << ". File is closed" << std::endl;
+                std::cerr << "Cannot write dump file buffer. Wrote: " << n << ", length: " << length << ". Dump output file is closed." << std::endl;
                 close(this->fd_dump_output);
                 this->fd_dump_output = -1;
                 this->dump_output_disabled = true;
@@ -213,9 +222,9 @@ DatMessage UsbWorker::getDatMessage(const int length) {
     const uint16_t calculated_crc = this->crcModbus((unsigned char*)buf+12, length-16);
     if (received_crc != calculated_crc) {
         std::cerr << "Unexpected DAT CRC, calculated: ";
-        std::cerr << std::setfill('0') << std::setw(2) << std::hex << (int) calculated_crc;
+        std::cerr << std::setfill('0') << std::setw(2) << std::hex << (int) calculated_crc << std::dec;
         std::cerr << ", received: ";
-        std::cerr << std::setfill('0') << std::setw(2) << std::hex << (int) received_crc;
+        std::cerr << std::setfill('0') << std::setw(2) << std::hex << (int) received_crc << std::dec;
         std::cerr << std::endl;
     }
     return datMessage;

@@ -62,11 +62,17 @@ void MainWindow::updateDatState(const DatMessage &msg) {
     const std::string program_state_string = msg.isProgramStateEmpty() ? ("#" + msg.getProgramCompletedCountStr()) : (running_string + msg.getProgramStateStr());
     const QString program_state_q_string = QString::fromStdString(program_state_string);
     // Step
+    std::string charging_or_discharging_arrow_string = "";
+    if (msg.isStepCharging()) {
+        charging_or_discharging_arrow_string = "⇈"; // Up Arrow
+    } else if (msg.isStepDischarging()) {
+        charging_or_discharging_arrow_string = "⇊"; // Down Arrow
+    }
     std::string step_index_string = "";
     if (!msg.isProgramStateEmpty() && !msg.isProgramStateNoSetup() && !msg.isProgramStateComplete()) {
-        step_index_string = "  (" + msg.getStepIndexPrTotalStr() + ")";
+        step_index_string = " (" + msg.getStepIndexPrTotalStr() + ")";
     }
-    const std::string step_state_string = msg.getStepStr() + step_index_string;
+    const std::string step_state_string = charging_or_discharging_arrow_string + msg.getStepStr() + step_index_string;
     const QString step_state_q_string = QString::fromStdString(step_state_string);
     // C-cap
     const std::string remaining_time_string = updateAndGetRemainingTimeStringForSlot(msg);
@@ -346,7 +352,6 @@ void MainWindow::updateChargeLimit() {
 void MainWindow::updateSlotToCancel() {
     // Charge limit is reached. Stop charge. Cancel slot
     if (slotToCancel != -1) {
-        std::cout << "Do stop charge/cancel " << DatMessage::getSlotIdStr(slotToCancel) << std::endl;
         this->usbWorker->writeCommand(COMMAND_CANCEL_SLOT, (unsigned char) slotToCancel);
     }
     slotToCancel = -1;
@@ -421,16 +426,17 @@ std::string MainWindow::updateAndGetRemainingTimeStringForSlot(const DatMessage 
                         // The current value for charge_cap is ONE minute old. That become the new start value for charge_cap.
                         remaining_time_for_slot_charge_cap_start[slotId] = remaining_time_for_slot_charge_cap_last;
                     }
-                    if (slotToCancel == -1 && charge_cap_limit < charge_cap) {
-                        std::cout << "Request stop charge/cancel " << msg.getSlotIdStr();
-                        std::cout << ", Charge limit percentage: " << charge_limit_percentage;
-                        std::cout << std::endl;
-                        msg.print();
-                        slotToCancel = msg.getSlotId();
-                    }
                 }
-                // Set Remaining Time
-                remaining_time_string_for_slot = getRemainingTimeStringForSlot(slotId, charge_cap_limit, charge_cap, discharge_cap);
+                if (slotToCancel == -1 && charge_cap_limit < charge_cap) {
+                    std::cout << "STOP charge/cancel " << msg.getSlotIdStr();
+                    std::cout << ", charge limit percentage: " << charge_limit_percentage;
+                    std::cout << std::endl;
+                    msg.print();
+                    slotToCancel = msg.getSlotId();
+                } else {
+                    // Set Remaining Time
+                    remaining_time_string_for_slot = getRemainingTimeStringForSlot(slotId, charge_cap_limit, charge_cap, discharge_cap);
+                }
             }
         } else {
             std::cerr << "Invalid slotId: " << (int) slotId << std::endl;
@@ -454,7 +460,7 @@ std::string MainWindow::getRemainingTimeStringForSlot(const int slotId, const ui
         const std::chrono::time_point<std::chrono::system_clock> time_current = remaining_time_for_slot_time_current[slotId];
         const uint32_t time_start_to_time_current_seconds = ((std::chrono::duration<double>) (time_current-time_start)).count();
         const uint32_t time_start_to_time_current_minutes = time_start_to_time_current_seconds / 60;
-        const uint32_t remaining_charge_cap = charge_cap_limit - charge_cap;
+        const uint32_t remaining_charge_cap = charge_cap_limit < charge_cap ? 0 : charge_cap_limit - charge_cap;
         const uint32_t remaining_minutes = 1 + (time_start_to_time_current_minutes * remaining_charge_cap) / timed_charge_cap;
         const uint32_t hour_count = std::min((uint32_t) 999, remaining_minutes / 60);
         const uint32_t minute_count = remaining_minutes % 60;

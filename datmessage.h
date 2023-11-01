@@ -17,6 +17,7 @@ public:
     void print() const;
     void printSummary() const;
 
+    void validate() const;
     uint16_t getCounter() const;
     uint8_t getSlotId() const;
     void validateSlotId() const;
@@ -96,6 +97,7 @@ public:
     uint8_t getSdCardLog() const;
     void validateSdCardLog() const;
     bool isSdCardLogNone() const;
+    bool isSdCardLogCompleteDischarged() const;
     bool isSdCardLogComplete() const;
     std::string getSdCardLogStr() const;
     uint8_t getProgramCompletedCount() const;

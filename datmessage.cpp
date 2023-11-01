@@ -39,6 +39,7 @@ const int TRICKLE_STATE_RUNNING                     =  1;
 const int MAX_CHARGE_AUTO                           =  0;
 const int MAX_CHARGE_3000MA                         =  6;
 const int SD_CARD_LOG_NONE                          =  0;
+const int SD_CARD_LOG_COMPLETE_DISCHARGED           =  3;
 const int SD_CARD_LOG_COMPLETE                      =  4;
 
 const int VALIDATE_SLOT_ID_MIN                      =  0;
@@ -78,19 +79,7 @@ const int16_t NIZN_DISCHARGE_VOLTAGE_INDEX_MV[]     = {-1,   -1,   -1};
 
 DatMessage::DatMessage(char* buffer, const int16_t len)
     : Message(buffer, len) {
-    validateSlotId();
-    validateChemistry();
-    validateRunningState();
-    validateProgramState();
-    validateProgram();
-    validateStep();
-    validateVoltageIndex();
-    validateTrickleState();
-    validateMaxCharge();
-    validateSdCardLog();
-    validateDischarge();
-    validateMaxDischarge();
-    validateStepIndex();
+    validate();
 }
 
 void DatMessage::print_format(const char format) const {
@@ -101,13 +90,11 @@ void DatMessage::print_format(const char format) const {
     }
     int slotId = -1;
     switch(format) {
-        case '1' ... '8': {
-                              slotId = format - '1';
-                              break;
+        case '1' ... '8': { slotId = format - '1';
+                            break;
         }
-        case 'A' ... 'B': {
-                              slotId = format - 'A' + 8;
-                              break;
+        case 'A' ... 'B': { slotId = format - 'A' + 8;
+                            break;
         }
     }
     if (slotId != -1 && getSlotId() == slotId) {
@@ -151,6 +138,22 @@ void DatMessage::print() const {
 
 void DatMessage::printSummary() const {
     std::cout << getSlotIdStr() << ": " << getProgramStateStr() << ": " << getStepStr() << std::endl;
+}
+
+void DatMessage::validate() const {
+    validateSlotId();
+    validateChemistry();
+    validateRunningState();
+    validateProgramState();
+    validateProgram();
+    validateStep();
+    validateVoltageIndex();
+    validateTrickleState();
+    validateMaxCharge();
+    validateSdCardLog();
+    validateDischarge();
+    validateMaxDischarge();
+    validateStepIndex();
 }
 
 uint16_t DatMessage::getCounter() const {
@@ -596,10 +599,9 @@ void DatMessage::validateVoltageIndex() const {
             case 2: if (isProgramStateComplete() || isProgramStateTrickle()) {
                         return;
                     }
-            case 3 ... 7: {
-                              voltage_index_matches_voltage =    getMinimumDischargeMilliVoltage(voltage_index, cell_stack_size) <= voltage  // NiMH, case 3: Lowest  seen 0.318V
-                                                              && voltage <= getMaximumDischargeMilliVoltage(voltage_index, cell_stack_size); // NiMH, case 7: Highest seen 1.522V
-                              break;
+            case 3 ... 7: { voltage_index_matches_voltage =    getMinimumDischargeMilliVoltage(voltage_index, cell_stack_size) <= voltage  // NiMH, case 3: Lowest  seen 0.318V
+                                                            && voltage <= getMaximumDischargeMilliVoltage(voltage_index, cell_stack_size); // NiMH, case 7: Highest seen 1.522V
+                            break;
             }
         }
         if (isProgramStateComplete() || isProgramStateTrickle()) {
@@ -610,10 +612,9 @@ void DatMessage::validateVoltageIndex() const {
         }
     } else {
         switch(voltage_index) {
-            case 2 ... 6: {
-                              voltage_index_matches_voltage =    getMinimumChargeMilliVoltage(voltage_index, cell_stack_size) <= voltage  // NiMH, case 2: Lowest  seen 0.006V
-                                                              && voltage <= getMaximumChargeMilliVoltage(voltage_index, cell_stack_size); // NiMH, case 6: Highest seen 1.523V
-                              break;
+            case 2 ... 6: { voltage_index_matches_voltage =    getMinimumChargeMilliVoltage(voltage_index, cell_stack_size) <= voltage  // NiMH, case 2: Lowest  seen 0.006V
+                                                            && voltage <= getMaximumChargeMilliVoltage(voltage_index, cell_stack_size); // NiMH, case 6: Highest seen 1.523V
+                            break;
             }
             case 7: if (isProgramStateComplete() || isProgramStateTrickle()) {
                         return;
@@ -672,12 +673,12 @@ std::string DatMessage::getVoltageIndexStr() const {
 uint16_t DatMessage::getMinimumTypeMilliVoltage(const std::string info, const int16_t type_voltage_index_mv[], const size_t type_voltage_index_mv_sizeof, const uint8_t minimum_voltage_index, const uint8_t voltage_index, const uint8_t cell_stack_size) const {
     const uint8_t type_voltage_index_mv_size = type_voltage_index_mv_sizeof / sizeof(int16_t);
     if (voltage_index < minimum_voltage_index || type_voltage_index_mv_size - 1 < voltage_index) {
-        std::cerr << getSlotIdStr() << ", invalid " + info + " minimum voltage index: " << (unsigned) voltage_index << ", should be from [" << (unsigned) minimum_voltage_index << ", " << (unsigned) (type_voltage_index_mv_size - 1) << "]" << std::endl;
+        std::cerr << getSlotIdStr() << ", invalid " << info << " minimum voltage index: " << (unsigned) voltage_index << ", should be from [" << (unsigned) minimum_voltage_index << ", " << (unsigned) (type_voltage_index_mv_size - 1) << "]" << std::endl;
         return -1;
     }
     const int16_t minimum_type_voltage_mv = type_voltage_index_mv[voltage_index - 1];
     if (minimum_type_voltage_mv < 0) {
-        std::cerr << getSlotIdStr() << ", invalid " + info + " minimum voltage value: " << (unsigned) minimum_type_voltage_mv << " for voltage index: " << (unsigned) voltage_index << std::endl;
+        std::cerr << getSlotIdStr() << ", invalid " << info << " minimum voltage value: " << (unsigned) minimum_type_voltage_mv << " for voltage index: " << (unsigned) voltage_index << std::endl;
         return -1;
     }
     if (minimum_type_voltage_mv == 0) {
@@ -689,11 +690,11 @@ uint16_t DatMessage::getMinimumTypeMilliVoltage(const std::string info, const in
 uint16_t DatMessage::getMaximumTypeMilliVoltage(const std::string info, const int16_t type_voltage_index_mv[], const size_t type_voltage_index_mv_sizeof, const uint8_t minimum_voltage_index, const uint8_t voltage_index, const uint8_t cell_stack_size) const {
     const uint8_t type_voltage_index_mv_size = type_voltage_index_mv_sizeof / sizeof(int16_t);
     if (voltage_index < minimum_voltage_index || type_voltage_index_mv_size - 1 < voltage_index) {
-        std::cerr << getSlotIdStr() << ", invalid " + info + " maximum voltage index: " << (unsigned) voltage_index << ", should be from [" << (unsigned) minimum_voltage_index << ", " << (unsigned) (type_voltage_index_mv_size - 1) << "]" << std::endl;
+        std::cerr << getSlotIdStr() << ", invalid " << info << " maximum voltage index: " << (unsigned) voltage_index << ", should be from [" << (unsigned) minimum_voltage_index << ", " << (unsigned) (type_voltage_index_mv_size - 1) << "]" << std::endl;
     }
     const int16_t maximum_type_voltage_mv = type_voltage_index_mv[voltage_index];
     if (maximum_type_voltage_mv < 0) {
-        std::cerr << getSlotIdStr() << ", invalid " + info + " maximum voltage value: " << (unsigned) maximum_type_voltage_mv << " for voltage index: " << (unsigned) voltage_index << std::endl;
+        std::cerr << getSlotIdStr() << ", invalid " << info << " maximum voltage value: " << (unsigned) maximum_type_voltage_mv << " for voltage index: " << (unsigned) voltage_index << std::endl;
         return -1;
     }
     return cell_stack_size * maximum_type_voltage_mv;
@@ -820,10 +821,10 @@ uint8_t DatMessage::getSdCardLog() const {
 
 void DatMessage::validateSdCardLog() const {
     const uint8_t sd_card_log = getSdCardLog();
-    if (sd_card_log < VALIDATE_SD_CARD_LOG_MIN || VALIDATE_SD_CARD_LOG_MAX < sd_card_log || 3 == sd_card_log) {
+    if (sd_card_log < VALIDATE_SD_CARD_LOG_MIN || VALIDATE_SD_CARD_LOG_MAX < sd_card_log) {
         std::cerr << getSlotIdStr() << ", invalid sd card log: " << (unsigned) sd_card_log << std::endl;
     }
-    if (isSdCardLogComplete()) {
+    if (isSdCardLogCompleteDischarged() || isSdCardLogComplete()) {
         if (isProgramStateError() && isProgramError() && isStepError()) {
             return;
         }
@@ -833,14 +834,26 @@ void DatMessage::validateSdCardLog() const {
         if (!isProgramStateComplete() && !isProgramStateTrickle()) {
             std::cerr << getSlotIdStr() << ", invalid, sd card log: " << (unsigned) sd_card_log << ", program state: " << getProgramStateStr() << std::endl;
         }
-        if (!isStepReadyCharged() && !isStepReadyDischarged()) {
-            std::cerr << getSlotIdStr() << ", invalid, sd card log: " << (unsigned) sd_card_log << ", step: " << getStepStr() << std::endl;
+        if (isSdCardLogCompleteDischarged() && !isStepReadyDischarged()) {
+            std::cerr << getSlotIdStr() << ", invalid, complete-discharged, sd card log: " << (unsigned) sd_card_log << ", step: " << getStepStr() << std::endl;
+        }
+        const uint16_t voltage = getVoltage();
+        const uint8_t cell_stack_size = getCellStackSize();
+        if (isSdCardLogCompleteDischarged() && (voltage < cell_stack_size * 900 + 1)) {
+            std::cerr << getSlotIdStr() << ", invalid, ?? complete-discharged, sd card log: " << (unsigned) sd_card_log << ", voltage: " << getVoltageStr() << std::endl;
+        }
+        if (isSdCardLogComplete() && !isStepReadyCharged() && !isStepReadyDischarged()) {
+            std::cerr << getSlotIdStr() << ", invalid, complete, sd card log: " << (unsigned) sd_card_log << ", step: " << getStepStr() << std::endl;
         }
     }
 }
 
 bool DatMessage::isSdCardLogNone() const {
     return getSdCardLog() == SD_CARD_LOG_NONE;
+}
+
+bool DatMessage::isSdCardLogCompleteDischarged() const {
+    return getSdCardLog() == SD_CARD_LOG_COMPLETE_DISCHARGED;
 }
 
 bool DatMessage::isSdCardLogComplete() const {
@@ -851,8 +864,9 @@ std::string DatMessage::getSdCardLogStr() const {
     const uint8_t sd_card_log = getSdCardLog();
     switch(sd_card_log) {
         case SD_CARD_LOG_NONE: return "SD Log None";
-        case 1: return "SD Log Running";
-        case 2: return "SD Log Create";
+        case 1: return "SD Log Active";
+        case 2: return "SD Log Inactive(Program not running)";
+        case SD_CARD_LOG_COMPLETE_DISCHARGED: return "SD Log Finish-Discharged. Step is Ready-Discharged. 0.901V <= voltage. After program complete the voltage has not changed yet";
         case SD_CARD_LOG_COMPLETE: return "SD Log Finished";
         default:
             std::cerr << getSlotIdStr() << ", invalid sd card log: " << (unsigned) sd_card_log << std::endl;
@@ -865,8 +879,8 @@ uint8_t DatMessage::getProgramCompletedCount() const {
 }
 
 std::string DatMessage::getProgramCompletedCountStr() const {
-    const int8_t program_complete_count = getProgramCompletedCount();
-    return std::to_string(program_complete_count);
+    const int8_t program_completed_count = getProgramCompletedCount();
+    return std::to_string(program_completed_count);
 }
 
 uint8_t DatMessage::getPause() const {
@@ -886,12 +900,12 @@ uint8_t DatMessage::getDischarge() const {
 void DatMessage::validateDischarge(const std::string info, const uint8_t discharge) const {
     if (isChemistryNimhCd()) {
         if (discharge < VALIDATE_DISCHARGE_MIN || VALIDATE_DISCHARGE_CHEMISTRY_NIMH_CD_MAX < discharge) {
-            std::cerr << getSlotIdStr() << ", invalid " + NIMH_CD + " " + info + "discharge: " << (unsigned) discharge << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid " << NIMH_CD << " " << info << "discharge: " << (unsigned) discharge << std::endl;
         }
     }
     if (isChemistryNizn()) {
         if (discharge < VALIDATE_DISCHARGE_MIN || VALIDATE_DISCHARGE_CHEMISTRY_NIZN_MAX < discharge) {
-            std::cerr << getSlotIdStr() << ", invalid " + NIZN + " " + info + "discharge: " << (unsigned) discharge << std::endl;
+            std::cerr << getSlotIdStr() << ", invalid " << NIZN << " " << info << "discharge: " << (unsigned) discharge << std::endl;
         }
     }
 }
@@ -929,7 +943,7 @@ std::string DatMessage::getDischargeStr(const std::string info, const uint8_t di
             case 0: return AUTO;
             case 1 ... 6 : return std::to_string(discharge * 125) + "mA";
             default:
-                std::cerr << getSlotIdStr() << ", invalid " + NIMH_CD + " " + info + "discharge: " << (unsigned) discharge << std::endl;
+                std::cerr << getSlotIdStr() << ", invalid " << NIMH_CD << " " << info << "discharge: " << (unsigned) discharge << std::endl;
                 return ERR + "(" + NIMH_CD + std::to_string(discharge) + ")";
         }
     }
@@ -938,7 +952,7 @@ std::string DatMessage::getDischargeStr(const std::string info, const uint8_t di
         switch(discharge) {
             case 1 ... 4 : return std::to_string(discharge * 150) + "mA";
             default:
-                std::cerr << getSlotIdStr() << ", invalid " + NIZN + " " + info + "discharge: " << (unsigned) discharge << std::endl;
+                std::cerr << getSlotIdStr() << ", invalid " << NIZN << " " << info << "discharge: " << (unsigned) discharge << std::endl;
                 return ERR + "(" + NIZN + std::to_string(discharge) + ")";
         }
     }
